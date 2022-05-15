@@ -29,7 +29,7 @@ export function Home() {
           <SummaryContainer>
             <AvatarWrapper>
               <Avatar src={avatar} />
-              <AvatarFlag />
+              <AvatarFlag href="https://en.pronouns.page/@LightQuantum" target="_blank"/>
             </AvatarWrapper>
             <SummaryContent>
               <SummaryTitleWrapper>

@@ -15,7 +15,7 @@ export const SummarySubtitle = tw.div`text-sm md:text-base text-gray-600 dark:te
 export const SummarySubtitleAp = tw(SummarySubtitle)`md:ml-1`;
 export const AvatarWrapper = tw.div`flex-shrink-0 relative`;
 export const Avatar = tw.img`h-16 w-16 rounded-full shadow`;
-export const AvatarFlag = styled.div([tw`absolute bottom-0 right-0 h-4 w-6 rounded z-20 border-2 border-white shadow`, transBg]);
+export const AvatarFlag = styled.a([tw`absolute bottom-0 right-0 h-4 w-6 rounded z-20 border-2 border-white shadow`, transBg]);
 
 export const ParagraphWrapper = tw.div`px-6 pb-6 mx-auto pt-2 md:pt-4 max-w-lg md:max-w-xl`;
 export const Paragraph = styled.div(({ alternative }) => [
