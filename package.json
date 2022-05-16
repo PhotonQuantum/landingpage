@@ -16,6 +16,7 @@
     "@parcel/transformer-raw": "^2.5.0",
     "babel-plugin-macros": "^3.1.0",
     "parcel": "^2.5.0",
+    "sharp": "^0.29.1",
     "tailwindcss": "^3.0.24"
   },
   "dependencies": {

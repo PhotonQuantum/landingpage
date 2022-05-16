@@ -21,7 +21,7 @@ import { InformalProfile } from "../components/informal-profile";
 export function Home() {
   const [formal, setFormal] = useState(true);
   const toggleProfile = () => setFormal(!formal);
-  const avatar = new URL("../../static/avatar.png", import.meta.url);
+  const avatar = new URL("../../static/avatar.png?as=webp", import.meta.url);
   return (
     <>
       <Root>
