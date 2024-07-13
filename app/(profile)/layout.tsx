@@ -30,6 +30,7 @@ export default function ProfileLayout({ children }) {
           <Image className="h-16 w-16 sm:h-20 sm:w-20 rounded-full shadow" src={Avatar} alt={"Avatar"} />
           {/*<div className="absolute bottom-0 right-0 h-4 w-6 rounded z-20 border-2 border-white shadow trans-bg" />*/}
         </div>
+        <div className="hidden sn">LightQuantum</div>
         <div className="ml-6 flex flex-col justify-center">
           <div className="flex flex-col sm:flex-row sm:space-x-2 items-baseline">
             <div className="text-xl md:text-2xl text-strong leading-tight pb-1 rn">

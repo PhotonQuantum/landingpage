@@ -5,10 +5,10 @@ import React, { useEffect, useState } from "react";
 export const MailTo = ({ template }) => {
   const [emailAddress, setEmailAddress] = useState("");
   useEffect(() => {
-    let hostname = window.location.hostname;
-    let domain = hostname.split(".").slice(0, -1).join(".");
+    let screenname = document.querySelector(".sn").textContent.toLowerCase();
     let realname = document.querySelector(".rn").textContent.toLowerCase().replaceAll(" ", "");
-    setEmailAddress(template.replaceAll("{hostname}", hostname).replaceAll("{domain}", domain).replaceAll("{realname}", realname));
+    let realnamedot = document.querySelector(".rn").textContent.toLowerCase().replaceAll(" ", ".");
+    setEmailAddress(template.replaceAll("{realname}", realname).replaceAll("{realnamedot}", realnamedot).replaceAll("{screenname}", screenname));
   }, [template]);
   return (
     <a href={`mailto:${emailAddress}`}>{emailAddress}</a>
