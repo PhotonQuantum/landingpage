@@ -31,8 +31,8 @@ export default function ProfileLayout({ children }) {
             <div className="leading-tight text-strong rn">
               <span className="text-3xl md:text-4xl font-semibold">Yanning Chen</span>
             </div>
-            <div className="text-xl md:text-2xl text-strong font-light leading-tight pb-1 rn">
-              <span className="font-light text-label2 pr-2">/</span>
+            <div className="font-normal text-2xl md:text-3xl text-strong leading-tight pb-1 rn">
+              <span className="text-label2 pr-2">/</span>
               LightQuantum
             </div>
           </div>
