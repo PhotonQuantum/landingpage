@@ -5,12 +5,14 @@ import createMDX from "@next/mdx";
 
 const buildDate = new Date();
 const buildDateString = `${buildDate.getUTCFullYear()}/${buildDate.getUTCMonth() + 1}/${buildDate.getUTCDate()}`;
+const buildYearString = `${buildDate.getUTCFullYear()}`;
 
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
   env: {
-    lastUpdate: buildDateString
+    lastUpdate: buildDateString,
+    lastUpdateYear: buildYearString
   },
   typescript: {
     ignoreBuildErrors: true

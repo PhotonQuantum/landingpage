@@ -13,7 +13,7 @@
     }
 
     .markdown {
-        @apply prose prose-sm md:prose-base dark:prose-invert
+        @apply prose prose-base md:prose-lg dark:prose-invert
         prose-ul:mt-0 prose-ol:my-0 prose-li:my-0
     }
 
@@ -89,5 +89,9 @@
 
     .border-label {
         @apply border-ctp-subtext0
+    }
+
+    .text-subtle {
+        @apply text-sm md:text-base
     }
 }

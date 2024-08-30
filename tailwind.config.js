@@ -18,6 +18,19 @@ module.exports = {
       typography: (theme) => ({
         DEFAULT: {
           css: {
+            strong: {
+              fontWeight: "400"
+            },
+            h3: {
+              fontWeight: "500"
+            },
+            a: {
+              fontWeight: "inherit",
+              textDecoration: "none",
+              "&:hover": {
+                textDecoration: "underline"
+              }
+            },
             "--tw-prose-body": theme(`colors.${normal}.DEFAULT`),
             "--tw-prose-headings": theme(`colors.black`),
             "--tw-prose-lead": theme(`colors.${normal}.DEFAULT`),
