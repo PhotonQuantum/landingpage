@@ -39,7 +39,7 @@ export default function ProfileLayout({ children }) {
           <div className="text-xs md:text-sm text-label whitespace-nowrap">
             E53E D56B 7F20 B7BB
           </div>
-          <div className="text-lg md:text-xl text-label leading-tight md:leading-normal">
+          <div className="text-lg md:text-xl text-label leading-tight md:leading-normal mt-2">
             {
               pages.map(({ name, href }, i) => (
                 <Fragment key={i}>
