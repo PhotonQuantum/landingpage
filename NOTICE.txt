@@ -1,2 +1,4 @@
-All rights reserved for images, documents, slides, PDFs, MDXs, and all files under `public`.
+All rights reserved for images, documents, slides, PDFs, MDXs, and all files under `public`,
+except for png files under the `public/rustbelt_prose/` directory and in the `public/rustbelt_prose.zip` archive,
+whose rights are reserved for the original authors.
 The rest of the code is licensed under MIT.
