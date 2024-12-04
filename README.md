@@ -35,7 +35,7 @@ Look for `THEME:` comments in the codebase for more information.
 2. Delete `app/api` and `app/admin`. Remove all `<Timeline />` components.
 3. [Deploy](https://developers.cloudflare.com/pages/framework-guides/deploy-anything/#deploy-with-cloudflare-pages) your
    website to Cloudflare Pages.
-   Please choose `next.js` as the framework, and change the build command to `pnpx @cloudflare/next-on-pages@1`.
+   Please choose `next.js` as the framework, change the build command to `pnpx @cloudflare/next-on-pages@1`, and set environment variable `NODE_VERSION` to `22.9.0` or higher.
 
 ## Development
 
