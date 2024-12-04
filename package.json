@@ -10,18 +10,15 @@
     "@fullcalendar/icalendar": "^6.1.15",
     "@fullcalendar/react": "^6.1.15",
     "@fullcalendar/timegrid": "^6.1.15",
-    "@mdx-js/loader": "^3.0.1",
-    "@mdx-js/react": "^3.0.1",
-    "@next/mdx": "^14.2.7",
-    "@tabler/icons-react": "^3.14.0",
+    "@mdx-js/loader": "^3.1.0",
+    "@mdx-js/react": "^3.1.0",
+    "@next/mdx": "15.0.3",
+    "@tabler/icons-react": "^3.24.0",
     "@types/mdx": "^2.0.13",
-    "eslint-config-next": "^14.2.7",
-    "ical.js": "^1.5.0",
-    "next": "^14.2.7",
-    "next-auth": "5.0.0-beta.4",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-tweet": "^3.2.1",
+    "eslint-config-next": "15.0.3",
+    "next": "15.0.3",
+    "react": "19.0.0-rc-66855b96-20241106",
+    "react-dom": "19.0.0-rc-66855b96-20241106",
     "remark-directive": "^3.0.0",
     "remark-directive-rehype": "^0.4.2",
     "remark-gfm": "^4.0.0",
@@ -29,13 +26,16 @@
   },
   "devDependencies": {
     "@catppuccin/tailwindcss": "^0.1.6",
-    "@cloudflare/next-on-pages": "^1.13.2",
-    "@cloudflare/workers-types": "^4.20240821.1",
     "@tailwindcss/typography": "^0.5.15",
-    "@types/node": "20.10.2",
-    "@types/react": "18.2.41",
+    "@types/node": "22.10.1",
+    "@types/react": "npm:types-react@19.0.0-rc.1",
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.41",
-    "tailwindcss": "^3.4.10"
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "npm:types-react@19.0.0-rc.1"
+    }
   }
 }

@@ -1,1 +1,0 @@
-export const allowedUsers = ["1727578673375760384"];

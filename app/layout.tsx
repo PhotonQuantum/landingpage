@@ -1,5 +1,4 @@
 import "./globals.css";
-import { SessionProvider } from "next-auth/react";
 import { IBM_Plex_Sans } from 'next/font/google'
 import LocalFont from 'next/font/local'
 
@@ -22,9 +21,7 @@ export default function RootLayout({ children }) {
       {/* THEME: you can switch to another variant by changing the class name below */}
       <body className={`${ibm_plex.variable} ${neo_xihei.variable} ctp-latte dark:ctp-mocha bg-background font-normal font-sans`}>
         <div className="min-h-screen w-screen flex justify-center">
-          <SessionProvider>
-            {children}
-          </SessionProvider>
+          {children}
         </div>
       </body>
     </html>

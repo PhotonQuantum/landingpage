@@ -1,4 +1,0 @@
-[[d1_databases]]
-binding = "DB" # i.e. available in your Worker on env.DB
-database_name = "DB_TWEET"
-database_id = "7116ce7a-eff4-4de8-95cc-7263c2356a6a"
