@@ -16,7 +16,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-ibm-plex)", "var(--font-neo-xihei)"]
+        sans: ["var(--font-ibm-plex)", "var(--font-ibm-plex-sc)"]
       },
       typography: (theme) => ({
         DEFAULT: {
