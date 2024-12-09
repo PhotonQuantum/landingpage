@@ -2,6 +2,7 @@ import remarkDirective from "remark-directive";
 import remarkDirectiveRehype from "remark-directive-rehype";
 import remarkGfm from "remark-gfm";
 import createMDX from "@next/mdx";
+import viteFont from "vite-plugin-font";
 
 const buildDate = new Date();
 const buildDateString = `${buildDate.getUTCFullYear()}/${buildDate.getUTCMonth() + 1}/${buildDate.getUTCDate()}`;
@@ -25,6 +26,10 @@ const nextConfig = {
         filename: "public/[hash][ext]"
       }
     });
+
+    config.plugins.push(viteFont.webpack({
+      scanFiles: ['./app/**/*.{js,ts,jsx,tsx,mdx}'],
+    }));
 
     return config;
   },
