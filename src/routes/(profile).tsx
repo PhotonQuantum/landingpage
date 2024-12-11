@@ -4,6 +4,7 @@ import { For, Suspense } from "solid-js";
 import Avatar from "~/assets/images/avatar.jpg?h=480;240;120"
 import Image from "~/components/Image";
 import { getPages } from "~/apis/pages";
+import SvgBrandGithub from "@tabler/icons/outline/brand-github.svg"
 
 export default function ProfileLayout(props: RouteSectionProps) {
   const fetchPages = createAsync(() => getPages());
@@ -54,8 +55,9 @@ export default function ProfileLayout(props: RouteSectionProps) {
           <div class="mt-8 max-w-3xl text-xs md:text-sm text-label text-center flex flex-col sm:flex-row">
             <p class="sm:mr-auto">
               © {import.meta.env.VITE_LAST_UPDATE_YEAR} Yanning Chen.
-              {/* Designed by myself <a class="underline text-accent"
-                            href="https://github.com/PhotonQuantum/landingpage">[1]</a>. */}
+              Code available on <a class="text-accent inline-block" href="https://github.com/PhotonQuantum/landingpage">
+              <SvgBrandGithub class="w-4 h-4 inline-block align-text-bottom" />
+            </a>.
             </p>
             <p>
               Last updated on {import.meta.env.VITE_LAST_UPDATE}.
