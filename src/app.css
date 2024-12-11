@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .link {
+    @apply text-strong hover:text-strong-inv bg-link hover:bg-link-focused
+    transition-all ease-in-out duration-100 hover:duration-200;
+  }
+
+  .link-selected {
+    @apply text-strong-inv bg-link bg-link-selected
+  }
+
+  .markdown {
+    @apply prose prose-base md:prose-lg dark:prose-invert
+    prose-ul:mt-0 prose-ol:my-0 prose-li:my-0
+  }
+
+  .markdown * {
+    @apply first-of-type:mt-0
+  }
+
+  .markdown p {
+    @apply has-[+ul]:mb-0
+  }
+
+  .md-icon {
+    @apply w-5 h-5 inline
+  }
+
+  .tweet span, .tweet a {
+    @apply text-sm md:text-base leading-tight md:leading-tight
+  }
+
+  .tweet span {
+    @apply block
+  }
+
+  .tweet-info a {
+    @apply mt-1 text-xs md:text-sm text-label
+  }
+}
+
+@layer utilities {
+  body {
+    @apply ctp-latte dark:ctp-mocha bg-gradient-to-br from-ctp-base to-ctp-crust bg-ctp-base;
+  }
+
+
+  .trans-bg {
+    background: linear-gradient(180deg, #5BCEFA 20%, #F5A9B8 20%, 40%, #FFFFFF 40%, 60%, #F5A9B8 60%, 80%, #5BCEFA 80%);
+  }
+
+  .text-strong {
+    /* THEME: custom em text style */
+    @apply text-black dark:text-white;
+  }
+
+  .text-strong-inv {
+    @apply text-white dark:text-black;
+  }
+
+  .bg-link {
+    /* THEME: custom nav link style */
+    @apply bg-[size:100%_170%] bg-gradient-to-b from-50% from-transparent to-50% to-ctp-mauve
+  }
+
+  .bg-link-focused {
+    @apply bg-[0_100%]
+  }
+
+  .bg-link-selected {
+    @apply bg-[0_100%]
+  }
+
+  /* THEME: start of custom styles */
+  .bg-background {
+    @apply bg-gradient-to-br from-ctp-base to-ctp-crust bg-ctp-base
+  }
+
+  .text-label {
+    @apply text-ctp-subtext0
+  }
+
+  .text-label2 {
+    @apply text-ctp-subtext1
+  }
+
+  .text-accent {
+    @apply text-ctp-mauve
+  }
+
+  .text-error {
+    @apply text-ctp-red
+  }
+
+  .text-normal {
+    @apply text-ctp-text
+  }
+
+  .border-label {
+    @apply border-ctp-subtext0
+  }
+
+  .text-subtle {
+    @apply text-sm md:text-base
+  }
+
+  .bg-faint {
+    @apply dark:bg-ctp-mauve dark:bg-opacity-20 bg-[rgb(225,213,255)] bg-opacity-100
+  }
+}

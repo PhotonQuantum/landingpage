@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "allowJs": true,
+    "noEmit": true,
+    "strict": true,
+    "types": [
+      "vite-plugin-solid-svg/types-component-solid",
+      "vite-plugin-font/src/font",
+      "vinxi/types/client",
+      "solid-jsx/types",
+      "@cloudflare/workers-types/2023-07-01"
+    ],
+    "isolatedModules": true,
+    "paths": {
+      "~/*": [
+        "./src/*"
+      ]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+import { A } from "@solidjs/router";
+import MailTo from "~/components/MailTo";
+import SvgBrandGithub from "@tabler/icons/outline/brand-github.svg"
+import SvgBrandTwitter from "@tabler/icons/outline/brand-twitter.svg"
+import SvgBrandTelegram from "@tabler/icons/outline/brand-telegram.svg"
+import SvgBrandInstagram from "@tabler/icons/outline/brand-instagram.svg"
+
+export const metadata = {
+  name: "Links",
+  order: 9
+}
+
+Find me at:\
+:a[<SvgBrandGithub class="md-icon" /> Github]{href="https://github.com/PhotonQuantum" .whitespace-nowrap} ·
+:a[<SvgBrandTwitter class="md-icon" /> Twitter]{href="https://twitter.com/LightQuantumhah" .whitespace-nowrap} ·
+:a[<SvgBrandTelegram class="md-icon" /> Telegram]{href="https://t.me/lightquantum01" .whitespace-nowrap} ·
+:a[<SvgBrandInstagram class="md-icon" /> Instagram]{href="https://www.instagram.com/lightquantum01/" .whitespace-nowrap}
+
+Feel free to DM me on any platform.\
+You can also reach me via my personal email:
+- <MailTo template="self [at] lightquantum [dot] me" />
+
+For academic or professional purposes, please contact me via email:
+- <MailTo template="yanning.chen [at] mail [dot] utoronto [dot] ca" />
+- <MailTo template="yanning [at] cs [dot] toronto [dot] edu" />
+
+::p[Note: You can click on the email addresses to copy them to your clipboard.]{.text-gray-500}
+
+{/* You can check my schedule <A href="/schedule">here</A>. */}
+### Friends
+
+- [Matchy (Minghang Li)](https://matchy.bio/)
+- [Tesla (Yinsen) Zhang](https://ice1000.org/)

@@ -1,0 +1,60 @@
+import Image from "~/components/Image"
+import shBund from "~/assets/images/sh_bund.jpg?w=1280;640;320"
+import pitStreet from "~/assets/images/pit_street.jpg?w=1280;640;320"
+import SvgAperture from "@tabler/icons/outline/aperture.svg"
+import SvgCameraHeart from "@tabler/icons/outline/camera-heart.svg"
+
+export const metadata = {
+  name: "Misc",
+  order: 1
+}
+
+> :span[Pretending to be an extrovert, but hardly ever succeed]{.font-normal}
+
+This website is *mutual-recursively* designed by myself and my friend [Matchy](https://matchy.bio/) :span[(We regularly borrow designs from each other)]{.text-gray-500}.
+Also, it's inspired by [skyzh/skyzh-site](https://github.com/skyzh/skyzh-site) and [jonbarron/website](https://github.com/jonbarron/website).
+
+#### Languages
+
+I speak Mandarin, Shanghainese and English. Also, I can understand a little bit of Japanese. I prefer Shanghainese over Mandarin if you can speak it :span[(阿拉要保护好阿拉自家个闲话!)]{.text-gray-500}.
+
+#### Traveling
+
+I enjoy hiking and traveling. I've been to many places in China, US, Canada, and Japan.
+
+#### Photography
+
+<SvgCameraHeart class="md-icon" /> Sony Alpha 7C II + <SvgAperture class="md-icon" /> Sony FE 20-70mm f/4 G
+
+<div class="flex flex-row flex-wrap">
+  <div style={{flex: "1 1 200px"}}>
+    <Image class="my-0 p-2" src={pitStreet} baseSize={320} alt="Street in Pittsburgh. Aug 21, 2024. Pittsburgh, PA" />
+    <span class="text-xs text-center text-gray-500 mt-0">
+            Street in Pittsburgh.\
+            Aug 21, 2024. Pittsburgh, PA.
+        </span>
+  </div>
+
+  <div style={{flex: "1 1 200px"}}>
+    <Image class="my-0 p-2" src={shBund} baseSize={320} alt="Blue hour at the Bund. July 24, 2024. Shanghai, China" />
+    <span class="text-xs text-center text-gray-500 mt-0">
+            Blue hour at the Bund.\
+            July 24, 2024. Shanghai, China.
+        </span>
+  </div>
+</div>
+
+#### Music
+
+I used to listen to a lot of J-pop and J-rock, but now I'm more into *pop* and *rock*. I also like some classical music.
+
+Recently I've found myself hooked on musicals. Can't wait to see *Come From Away*!
+
+#### Keyboards
+
+- Lofree Flow84 (Kailh Low-profile :span[Ghost]{.text-lime-700})
+- HHKB Pro 2 (with [YDKB BLE Mod](https://ydkb.io/help/#/en/keyboards/hhkb-ble))
+
+#### One More Thing
+
+This site is now built with [SolidJS](https://www.solidjs.com/) because I recently found that [a talented student](https://github.com/milomg) of CSC324 is a core contributor to this project. He taught me a lot about incremental computation, and I trust his expertise.
