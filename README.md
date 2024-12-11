@@ -1,34 +1,90 @@
-# SolidStart
+# LightQuantum's Profile Page
 
-Everything you need to build a Solid project, powered by [`solid-start`](https://start.solidjs.com);
+Website: [lightquantum.me](https://lightquantum.me)
 
-## Creating a project
+## As a template
 
-```bash
-# create a new project in the current directory
-npm init solid@latest
+You are free to use this repo as a template for your own website. Please read [License](#license) for more information.
 
-# create a new project in my-app
-npm init solid@latest my-app
-```
+## Customize
 
-## Developing
+### Content
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a
-development server:
+**tl;dr** Replace all content in `public` (except favicons) and `src/assets` with your own. Modify
+`src/routes/(profile).tsx` to change the layout. Modify `app/routes/(profile)/*.mdx` to change the content.
 
-```bash
-npm run dev
+1. **Name** - Edit `src/routs/(profile).tsx`.
+2. **Avatar** - Replace `src/assets/images/avatar.jpg` with your own avatar. Also replace `public/favicon.ico`. You can
+   use [this website](https://favicon.io/favicon-converter/) to generate favicons.
+3. **Profile** - Edit `src/routes/(profile)/*.mdx` to change the content of your profile pages. Beware that you need to
+   add a small piece of `export const metadata` for each page to get listed in the nav bar. Refer to existing pages for
+   examples.
+4. **Footer** - Edit `src/routs/(profile).tsx` to change the content of the footer.
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+Check [FAQ](#faq) for more information.
 
-## Building
+### Theme
 
-Solid apps are built with _presets_, which optimise your project for deployment to different environments.
+This site uses [catppuccin](https://github.com/catppuccin/catppuccin) as the theme.
+It has multiple variants. You can switch to a different variant by modifying `app/layout.tsx`.
 
-By default, `npm run build` will generate a Node app that you can run with `npm start`. To use a different preset, add
-it to the `devDependencies` in `package.json` and specify in your `app.config.js`.
+To change specific colors, please modify `tailwind.config.js` and `src/app.css`.
 
-## This project was created with the [Solid CLI](https://solid-cli.netlify.app)
+### Images
+
+> TODO
+
+### Fonts
+
+> TODO
+
+### Icons
+
+## Deploy
+
+This template is ready to be deployed to Cloudflare Pages.
+
+If using `wrangler`,
+
+1. `pnpm run dev`
+2. `pnpx wrangler pages deploy`
+
+If using the Cloudflare Pages UI, just connect the repo and deploy. Build command is `pnpm run build` and output
+directory is `dist`.
+
+You can also deploy it to other JAM stack providers. Don't forget to modify the `server` section of `app.config.ts` if
+you decide to do so. Refer
+to [solidstart document](https://docs.solidjs.com/solid-start/reference/config/define-config#configuring-nitro) for more
+information.
+
+## Development
+
+`pnpm run dev` for hot-reloading development.
+
+`pnpm run build` and `pnpx wrangler pages dev` for testing the production build.
+
+## FAQ
+
+1. How to make text italic only (not bold)?\
+   By default italic text is made bold. To make it italic only, use `:it[blabla]`.
+2. How to add custom Tailwind styles to paragraphs in MDX?\
+   Use `::p[blabla]{.your-class}`.
+3. I'd like to add a line break in a paragraph, but not start a new paragraph.\
+   Add `\` at the end of the line.
+4. How to add a new page?
+   Just add a new `mdx` or `jsx` file in `src/routes/(profile)`. Don't forget to export `metadata` for the page to be
+   listed in the nav bar.
+5. I noticed you added some new syntax to MDX. How can I use them / add my own?\
+   Check `components` in `src/app.tsx`. Also, refer
+   to [remark-directive-rehype](https://github.com/IGassmann/remark-directive-rehype).
+6. Page gets reloaded when I click on a link.\
+   You need to use `A` from `@solidjs/router` instead of `a` tag for internal links. Refer to
+   `src/routes/(profile)/links.mdx` for an example.
+
+## License
+
+All rights reserved for images, documents, slides, PDFs, MDXs, and all files under `public` and `src/assets`.
+The rest of the code is licensed under MIT.
+
+You can use this repo as a template for your own website, but you must replace all the content with your
+own. Please also bring your own favicon and avatar.
