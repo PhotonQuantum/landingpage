@@ -2,6 +2,8 @@
 
 Website: [lightquantum.me](https://lightquantum.me)
 
+> This site is now built with [SolidJS](https://solidjs.com/). Check [PhotonQuantum/landingpage-nextjs](https://github.com/PhotonQuantum/landingpage-nextjs) for the old next.js version.
+
 ## As a template
 
 You are free to use this repo as a template for your own website. Please read [License](#license) for more information.
