@@ -43,7 +43,7 @@ export default defineConfig({
       Font.vite({
         scanFiles: ["src/routes/**/*.{ts,tsx,js,jsx,md,mdx}"],
         include: [/.ttf(\?subsets)?$/, /.otf(\?subsets)?$/, /.woff2(\?subsets)?$/],
-        exclude: []
+        exclude: [/fontsource/]
       }),
       FontaineTransform.vite({
         fallbacks: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"]

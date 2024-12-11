@@ -1,10 +1,10 @@
 import { Router } from "@solidjs/router";
 import { FileRoutes } from "@solidjs/start/router";
-import { Suspense } from "solid-js";
+import { For, Suspense } from "solid-js";
 // @ts-ignore
 import { MDXProvider } from "solid-mdx";
 import "./app.css";
-import { fontStyle } from "./fonts";
+import { fontStyle, preloadFonts } from "./fonts";
 import { Link, Meta, MetaProvider, Title } from "@solidjs/meta";
 import { flavors } from "@catppuccin/palette";
 
@@ -21,6 +21,10 @@ export default function App() {
   return (
     <MetaProvider>
       <Title>Yanning Chen</Title>
+      <For each={preloadFonts}>{(path) => (
+        // TODO custom type
+        <Link rel="preload" href={path} as="font" crossOrigin="anonymous" type="font/woff2" />
+      )}</For>
       <Link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       <Link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
       <Link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />

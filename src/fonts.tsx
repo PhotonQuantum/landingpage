@@ -3,6 +3,10 @@
 import "./fonts.css";
 import '@fontsource/ibm-plex-mono';
 
+import latinNormal from "@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff2";
+import latinMedium from "@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-500-normal.woff2";
+import latinSemibold from "@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-600-normal.woff2";
+
 import {
   css as css1,
   fontFamilyFallback as fontFamilyFallback1
@@ -60,3 +64,9 @@ export const fontStyle = {
   ].join(", "),
   "--fonts-mono": "IBM Plex Mono, monospace",
 };
+
+export const preloadFonts = [
+  latinNormal,
+  latinMedium,
+  latinSemibold,
+]
