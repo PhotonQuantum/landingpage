@@ -14,8 +14,8 @@ export default function ProfileLayout(props: RouteSectionProps) {
 
   return (
     <div>
-      <div class="container flex flex-col max-w-3xl">
-        <div class="flex mx-auto p-6 justify-center">
+      <div class="container flex flex-col max-w-lg sm:max-w-3xl">
+        <div class="flex mx-auto px-3 sm:px-6 py-6 sm:py-12 justify-center">
           <div class="flex-shrink-0 flex items-center">
             <Image class="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 rounded-full shadow my-auto" src={Avatar}
                    baseSize={120} alt={"Avatar"} />
