@@ -2,7 +2,7 @@ import { A, createAsync, RouteSectionProps } from "@solidjs/router";
 import { For, Suspense } from "solid-js";
 // @ts-ignore
 import Avatar from "~/assets/images/avatar.jpg?h=480;240;120"
-import Image from "~/components/Image";
+import { Image, ImagesProvider } from "~/components/Image";
 import { getPages } from "~/apis/pages";
 import SvgBrandGithub from "@tabler/icons/outline/brand-github.svg"
 
@@ -47,7 +47,9 @@ export default function ProfileLayout(props: RouteSectionProps) {
       <div class="flex flex-col mb-auto px-6 sm:px-12 pt-3 pb-6">
         <div class="markdown">
           <Suspense>
-            {props.children}
+            <ImagesProvider>
+              {props.children}
+            </ImagesProvider>
           </Suspense>
         </div>
         <div class="mt-8 max-w-3xl text-xs md:text-sm text-label text-center flex flex-col sm:flex-row">
