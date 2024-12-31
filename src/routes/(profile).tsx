@@ -7,10 +7,9 @@ import { getPages } from "~/apis/pages";
 import SvgBrandGithub from "@tabler/icons/outline/brand-github.svg"
 
 export default function ProfileLayout(props: RouteSectionProps) {
-  const fetchPages = createAsync(() => getPages());
+  const pages = createAsync(() => getPages());
 
-  const pages = fetchPages();
-  const pagesLength = pages?.length || 0;
+  const pagesLength = () => pages()?.length || 0;
 
   return (
     <div class="container flex flex-col max-w-lg sm:max-w-3xl">
@@ -34,11 +33,11 @@ export default function ProfileLayout(props: RouteSectionProps) {
             E53E D56B 7F20 B7BB
           </div>
           <div class="text-lg md:text-xl text-label leading-tight md:leading-normal mt-2">
-            <For each={pages}>
+            <For each={pages()}>
               {([path, {name}], i) => (
                 <>
                   <A activeClass="link-selected" inactiveClass="link" end={true} href={path}>{name}</A>
-                  {i() !== pagesLength - 1 && <span class="mx-1">|</span>}
+                  {i() !== pagesLength() - 1 && <span class="mx-1">|</span>}
                 </>
               )}
             </For>
