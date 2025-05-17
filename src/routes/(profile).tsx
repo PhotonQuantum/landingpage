@@ -14,12 +14,13 @@ export default function ProfileLayout(props: RouteSectionProps) {
   return (
     <div class="container flex flex-col max-w-lg sm:max-w-3xl">
       <div class="flex mx-auto px-3 sm:px-6 py-6 sm:py-12 justify-center">
-        <div class="flex-shrink-0 flex items-center">
-          <Image class="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 rounded-full shadow my-auto" src={Avatar}
+        <div class="shrink-0 flex items-center">
+          <Image class="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 rounded-full shadow-sm my-auto" src={Avatar}
                  baseSize={120} alt={"Avatar"} />
         </div>
         <div class="hidden sn">LightQuantum</div>
         <div class="ml-6 flex flex-col justify-center">
+          {/* TODO Space-between selector migration */}
           <div class="flex flex-col sm:flex-row sm:space-x-2 items-baseline">
             <div class="leading-tight text-strong rn">
               <span class="text-3xl sm:text-4xl md:text-5xl font-semibold">Yanning Chen</span>

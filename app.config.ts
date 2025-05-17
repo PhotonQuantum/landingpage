@@ -9,6 +9,7 @@ import solidSvg from "vite-plugin-solid-svg";
 import Font from "vite-plugin-font";
 import { FontaineTransform } from "fontaine"
 import { imagetools } from "vite-imagetools";
+import tailwindcss from "@tailwindcss/vite";
 
 const {default: mdx} = pkg;
 
@@ -57,6 +58,7 @@ export default defineConfig({
           as: "picture"
         })
       }),
+      tailwindcss(),
     ]
   }
 });

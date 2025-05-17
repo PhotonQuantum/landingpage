@@ -1,113 +1,116 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "@catppuccin/tailwindcss/mocha.css";
+@plugin "@tailwindcss/typography";
+@config "../tailwind.config.cjs";
 
-@layer components {
-  .link {
-    @apply text-strong hover:text-strong-inv bg-link hover:bg-link-focused
+@source inline("text-subtle text-gray-500 text-lime-700 font-normal");
+
+body {
+  @apply bg-gradient-to-br from-ctp-base to-ctp-crust bg-ctp-base;
+}
+
+@theme inline {
+  --font-sans: var(--fonts-sans);
+  --font-mono: var(--fonts-mono);
+  --default-font-family: var(--fonts-sans);
+  --default-mono-font-family: var(--fonts-mono);
+}
+
+@utility link {
+  @apply text-strong hover:text-strong-inv bg-link hover:bg-link-focused
     transition-all ease-in-out duration-100 hover:duration-200;
+}
+
+@utility link-selected {
+  @apply text-strong-inv bg-link bg-link-selected;
+}
+
+@utility markdown {
+  @apply prose prose-base md:prose-lg dark:prose-invert
+    prose-ul:mt-0 prose-ol:my-0 prose-li:my-0;
+
+  * {
+    @apply first-of-type:mt-0;
   }
 
-  .link-selected {
-    @apply text-strong-inv bg-link bg-link-selected
-  }
-
-  .markdown {
-    @apply prose prose-base md:prose-lg dark:prose-invert
-    prose-ul:mt-0 prose-ol:my-0 prose-li:my-0
-  }
-
-  .markdown * {
-    @apply first-of-type:mt-0
-  }
-
-  .markdown p {
-    @apply has-[+ul]:mb-0
-  }
-
-  .md-icon {
-    @apply w-5 h-5 inline
-  }
-
-  .tweet span, .tweet a {
-    @apply text-sm md:text-base leading-tight md:leading-tight
-  }
-
-  .tweet span {
-    @apply block
-  }
-
-  .tweet-info a {
-    @apply mt-1 text-xs md:text-sm text-label
+  p {
+    @apply has-[+ul]:mb-0;
   }
 }
 
-@layer utilities {
-  body {
-    @apply ctp-latte dark:ctp-mocha bg-gradient-to-br from-ctp-base to-ctp-crust bg-ctp-base;
-  }
+@utility md-icon {
+  @apply w-5 h-5 inline;
+}
 
+@utility trans-bg {
+  background: linear-gradient(
+    180deg,
+    #5bcefa 20%,
+    #f5a9b8 20%,
+    40%,
+    #ffffff 40%,
+    60%,
+    #f5a9b8 60%,
+    80%,
+    #5bcefa 80%
+  );
+}
 
-  .trans-bg {
-    background: linear-gradient(180deg, #5BCEFA 20%, #F5A9B8 20%, 40%, #FFFFFF 40%, 60%, #F5A9B8 60%, 80%, #5BCEFA 80%);
-  }
+@utility text-strong {
+  /* THEME: custom em text style */
+  @apply text-black dark:text-white;
+}
 
-  .text-strong {
-    /* THEME: custom em text style */
-    @apply text-black dark:text-white;
-  }
+@utility text-strong-inv {
+  @apply text-white dark:text-black;
+}
 
-  .text-strong-inv {
-    @apply text-white dark:text-black;
-  }
+@utility bg-link {
+  /* THEME: custom nav link style */
+  @apply bg-size-[100%_170%] bg-gradient-to-b from-50% from-transparent to-50% to-ctp-mauve;
+}
 
-  .bg-link {
-    /* THEME: custom nav link style */
-    @apply bg-[size:100%_170%] bg-gradient-to-b from-50% from-transparent to-50% to-ctp-mauve
-  }
+@utility bg-link-focused {
+  @apply bg-position-[0_100%];
+}
 
-  .bg-link-focused {
-    @apply bg-[0_100%]
-  }
+@utility bg-link-selected {
+  @apply bg-position-[0_100%];
+}
 
-  .bg-link-selected {
-    @apply bg-[0_100%]
-  }
+/* THEME: start of custom styles */
+@utility bg-background {
+  @apply bg-gradient-to-br from-ctp-base to-ctp-crust bg-ctp-base;
+}
 
-  /* THEME: start of custom styles */
-  .bg-background {
-    @apply bg-gradient-to-br from-ctp-base to-ctp-crust bg-ctp-base
-  }
+@utility text-label {
+  @apply text-ctp-subtext0;
+}
 
-  .text-label {
-    @apply text-ctp-subtext0
-  }
+@utility text-label2 {
+  @apply text-ctp-subtext1;
+}
 
-  .text-label2 {
-    @apply text-ctp-subtext1
-  }
+@utility text-accent {
+  @apply text-ctp-mauve;
+}
 
-  .text-accent {
-    @apply text-ctp-mauve
-  }
+@utility text-error {
+  @apply text-ctp-red;
+}
 
-  .text-error {
-    @apply text-ctp-red
-  }
+@utility text-normal {
+  @apply text-ctp-text;
+}
 
-  .text-normal {
-    @apply text-ctp-text
-  }
+@utility border-label {
+  @apply border-ctp-subtext0;
+}
 
-  .border-label {
-    @apply border-ctp-subtext0
-  }
+@utility text-subtle {
+  @apply text-sm md:text-base;
+}
 
-  .text-subtle {
-    @apply text-sm md:text-base
-  }
-
-  .bg-faint {
-    @apply dark:bg-ctp-mauve dark:bg-opacity-20 bg-[rgb(225,213,255)] bg-opacity-100
-  }
+@utility bg-faint {
+  @apply dark:bg-ctp-mauve/20 bg-[rgb(225,213,255)]/100;
 }
