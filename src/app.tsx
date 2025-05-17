@@ -1,6 +1,6 @@
 import { Router } from "@solidjs/router";
 import { FileRoutes } from "@solidjs/start/router";
-import { For, Suspense } from "solid-js";
+import { For, onMount, Suspense } from "solid-js";
 // @ts-ignore
 import { MDXProvider } from "solid-mdx";
 import "./app.css";
@@ -18,6 +18,11 @@ const components = {
 export default function App() {
   const lightColor = flavors.latte.colors.base.hex;
   const darkColor = flavors.mocha.colors.base.hex;
+  onMount(() => {
+    for (const [key, value] of Object.entries(fontStyle)) {
+      document.documentElement.style.setProperty(key, value);
+    }
+  });
   return (
     <MetaProvider>
       <Title>Yanning Chen</Title>
@@ -35,7 +40,7 @@ export default function App() {
         <Router
           explicitLinks
           root={props => (
-            <main style={fontStyle} class="font-normal font-sans">
+            <main class="font-normal font-sans">
               <div class="min-h-screen w-full flex justify-center">
                 <Suspense>{props.children}</Suspense>
               </div>

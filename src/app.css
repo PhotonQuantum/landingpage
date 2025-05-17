@@ -12,8 +12,6 @@ body {
 @theme inline {
   --font-sans: var(--fonts-sans);
   --font-mono: var(--fonts-mono);
-  --default-font-family: var(--fonts-sans);
-  --default-mono-font-family: var(--fonts-mono);
 }
 
 @utility link {
