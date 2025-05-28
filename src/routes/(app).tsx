@@ -20,16 +20,16 @@ export default function AppLayout(props: RouteSectionProps) {
               <span class="mx-4 text-label hidden sm:inline">/</span>
               {/* Desktop nav */}
               <nav class="hidden sm:flex items-center space-x-4">
-                <A 
-                  href="/" 
+                <A
+                  href="/"
                   class="text-label border-b-2 border-transparent pt-1 hover:text-accent hover:border-accent motion-safe:transition-all motion-safe:duration-200"
                   activeClass="!text-accent !border-accent font-medium"
                   end={true}
                 >
                   Home
                 </A>
-                <A 
-                  href="/gallery" 
+                <A
+                  href="/gallery"
                   class="text-label border-b-2 border-transparent pt-1 hover:text-accent hover:border-accent motion-safe:transition-all motion-safe:duration-200"
                   activeClass="!text-accent !border-accent font-medium"
                   end={true}
@@ -46,30 +46,24 @@ export default function AppLayout(props: RouteSectionProps) {
               onClick={() => setMenuOpen(v => !v)}
             >
               <div class="relative w-6 h-6">
-                <SvgMenu 
-                  class={`w-6 h-6 text-label2 absolute motion-safe:transition-all motion-safe:duration-200 ${menuOpen() ? 'opacity-0 rotate-90' : 'opacity-100 rotate-0'}`} 
+                <SvgMenu
+                  class={`w-6 h-6 text-label2 absolute motion-safe:transition-all motion-safe:duration-200 ${menuOpen() ? 'opacity-0 rotate-90' : 'opacity-100 rotate-0'}`}
                 />
-                <SvgX 
-                  class={`w-6 h-6 text-label2 absolute motion-safe:transition-all motion-safe:duration-200 ${menuOpen() ? 'opacity-100 rotate-0' : 'opacity-0 -rotate-90'}`} 
+                <SvgX
+                  class={`w-6 h-6 text-label2 absolute motion-safe:transition-all motion-safe:duration-200 ${menuOpen() ? 'opacity-100 rotate-0' : 'opacity-0 -rotate-90'}`}
                 />
               </div>
             </button>
           </div>
         </div>
         {/* Mobile dropdown nav */}
-        <div 
-          class="sm:hidden absolute w-full bg-background-95 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-800/50 overflow-hidden motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-in-out shadow-lg"
-          style={{
-            "max-height": menuOpen() ? "200px" : "0px",
-            "opacity": menuOpen() ? "1" : "0",
-            "transform": menuOpen() ? "translateY(0)" : "translateY(-10px)",
-            "z-index": "50"
-          }}
+        <div
+          class={`sm:hidden absolute w-full bg-background-95 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-800/50 overflow-hidden motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-in-out shadow-lg z-50 ${menuOpen() ? 'max-h-14 opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2'}`}
         >
           <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <nav class="py-3">
-              <A 
-                href="/" 
+              <A
+                href="/"
                 class="block py-2.5 text-label border-b-2 border-transparent hover:text-accent hover:border-accent motion-safe:transition-all motion-safe:duration-200"
                 activeClass="!text-accent !border-accent font-medium"
                 end={true}
@@ -77,8 +71,8 @@ export default function AppLayout(props: RouteSectionProps) {
               >
                 Home
               </A>
-              <A 
-                href="/gallery" 
+              <A
+                href="/gallery"
                 class="block py-2.5 text-label border-b-2 border-transparent hover:text-accent hover:border-accent motion-safe:transition-all motion-safe:duration-200"
                 activeClass="!text-accent !border-accent font-medium"
                 end={true}

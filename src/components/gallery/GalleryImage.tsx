@@ -29,12 +29,9 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
 
   return (
     <div
-      class={`gallery-item overflow-hidden rounded-lg cursor-pointer motion-safe:transition-opacity motion-safe:duration-300 motion-safe:ease-out ${isTransitioning() ? 'opacity-80' : 'opacity-100'
-        }`}
+      class={`absolute gallery-item overflow-hidden rounded-lg cursor-pointer motion-safe:transition-opacity motion-safe:duration-300 motion-safe:ease-out ${isTransitioning() ? 'opacity-80' : 'opacity-100'}`}
       data-key={image().filename}
       style={{
-        // TODO merge to tailwind style
-        position: "absolute",
         left: `${box().left}px`,
         top: `${box().top}px`,
         width: `${box().width}px`,
