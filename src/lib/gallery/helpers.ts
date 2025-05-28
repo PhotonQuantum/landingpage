@@ -27,3 +27,7 @@ export function adjustedSrcsetHardCoded(srcset: string): string {
     })
     .join(', ');
 }
+
+export function identity<T>(x: T): T {
+  return x;
+}

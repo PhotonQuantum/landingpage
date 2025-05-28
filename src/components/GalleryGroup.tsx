@@ -1,21 +1,32 @@
-import { createSignal, createMemo, onCleanup, createEffect, For } from "solid-js";
+import { createSignal, createMemo, onCleanup, createEffect, For, Accessor, batch, untrack } from "solid-js";
 import justifiedLayout from "justified-layout";
 import { createElementSize } from "@solid-primitives/resize-observer";
 import { createIntersectionObserver } from "@solid-primitives/intersection-observer";
 import { LayoutBox } from "~/lib/gallery/types";
 import { scrollToElementWithCallback } from "~/lib/gallery/utils";
-import { sortImagesByFeatured } from "~/lib/gallery/helpers";
-import { GalleryGroup as GalleryGroupType } from "~/apis/galleryData";
+import { sortImagesByFeatured, identity } from "~/lib/gallery/helpers";
+import { ExifMetadata, GalleryGroup as GalleryGroupType, ImageWithBlurhash } from "~/apis/galleryData";
 import { GalleryImage } from "./gallery/GalleryImage";
 import { GalleryHeader } from "./gallery/GalleryHeader";
 import { useGalleryAnimation } from "~/lib/gallery/useGalleryAnimation";
+import { createStore, reconcile } from "solid-js/store";
+import { Picture } from "vite-imagetools";
 
 interface GalleryGroupProps {
   group: GalleryGroupType;
 }
 
+interface Layout {
+  containerHeight: number;
+  widowCount: number;
+  boxes: LayoutBox[];
+}
+
+type PicItem = Picture & ImageWithBlurhash & ExifMetadata;
+type PicArray = PicItem[];
+
 export function GalleryGroup(props: GalleryGroupProps) {
-  const { group } = props;
+  const group = untrack(() => props.group);
   const [isExpanded, setIsExpanded] = createSignal(false);
   const [isSticky, setIsSticky] = createSignal(false);
   const [isTransitioning, setIsTransitioning] = createSignal(false);
@@ -29,17 +40,21 @@ export function GalleryGroup(props: GalleryGroupProps) {
   const width = () => containerSize.width || 800;
 
   const images = group.items.flatMap(item => Object.values(item.thumbnails));
-  const allFeatured: string[] = group.items.flatMap(item =>
+  const allFeatured = group.items.flatMap(item =>
     (item.meta.featured ?? []).map((f: string) => item.id + '/' + f.replace(/\.jpg$/i, ""))
   );
-  const featuredSet: Set<string> = new Set(allFeatured);
+  const featuredSet = new Set(allFeatured);
 
-  const visibleImages = createMemo(() =>
-    isExpanded() ? images : sortImagesByFeatured(images, featuredSet)
-  );
+  // NOTE: I didn't know modifications to the store would affect the original array! Copy it here.
+  const [displayImages, setDisplayImages] = createStore<PicArray>(images.map(img => ({ ...img })));
 
-  const visibleAspectRatios = () =>
-    visibleImages().map((img) => img.img.w / img.img.h);
+  createEffect(() => {
+    const newImages = isExpanded() ? images : sortImagesByFeatured(images, featuredSet)
+    setDisplayImages(reconcile(newImages, { key: "filename", merge: true }))
+  })
+
+  const displayAspectRatios = () =>
+    displayImages.map((img) => img.img.w / img.img.h);
 
   const layout = createMemo(() => {
     const options = {
@@ -49,15 +64,27 @@ export function GalleryGroup(props: GalleryGroupProps) {
       maxNumRows: isExpanded() ? undefined : 3,
     };
 
-    return justifiedLayout(visibleAspectRatios(), options);
+    return justifiedLayout(displayAspectRatios(), options);
   });
+
+  const [visibleImages, setVisibleImages] = createStore<PicArray>([]);
+  const [syncedLayoutBoxes, setSyncedLayoutBoxes] = createStore<LayoutBox[]>([]);
+  const [syncedLayout, setSyncedLayout] = createStore<Layout>({} as Layout);
+  createEffect(() => {
+    batch(() => {
+      setVisibleImages(reconcile(displayImages.slice(0, layout().boxes.length), { key: "filename", merge: true }));
+      setSyncedLayoutBoxes(layout().boxes);
+      setSyncedLayout(layout());
+    })
+  })
 
   // Animation logic
   const { animatePositions } = useGalleryAnimation();
 
   // Update positions when layout changes
   createEffect(() => {
-    layout();
+    // NOTE: ensure proper tracking of syncedLayout changes
+    identity(syncedLayout.boxes);
     const container = containerRef();
     if (container && typeof window !== 'undefined') {
       requestAnimationFrame(() => animatePositions(container));
@@ -124,7 +151,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
       <GalleryHeader
         label={group.label}
         isExpanded={isExpanded}
-        canExpand={() => images.length > layout().boxes.length}
+        canExpand={() => images.length > syncedLayoutBoxes.length}
         onExpand={handleExpand}
         onCollapse={handleCollapse}
         isSticky={isSticky}
@@ -133,11 +160,10 @@ export function GalleryGroup(props: GalleryGroupProps) {
       <div
         ref={setContainerRef}
         class="relative w-full"
-        style={{ height: `${layout().containerHeight}px` }}
+        style={{ height: `${syncedLayout.containerHeight}px` }}
       >
-        <For each={layout().boxes}>{(box: LayoutBox, i: () => number) => {
-          // TODO deal with unstable image prop
-          const image = createMemo(() => visibleImages()[i()]);
+        <For each={visibleImages}>{(image: PicItem, i: () => number) => {
+          const box = createMemo(() => syncedLayoutBoxes[i()]);
           return (
             <GalleryImage
               image={image}
