@@ -1,15 +1,13 @@
-import { A, createAsync, RouteSectionProps } from "@solidjs/router";
+import { A, RouteSectionProps } from "@solidjs/router";
 import { For, Suspense } from "solid-js";
 // @ts-ignore
 import Avatar from "~/assets/images/avatar.jpg?h=480;240;120"
 import { Image, ImagesProvider } from "~/components/Image";
-import { getPages } from "~/apis/pages";
 import SvgBrandGithub from "@tabler/icons/outline/brand-github.svg"
+import { profilePages } from "~/routes/(profile)/pages";
 
 export default function ProfileLayout(props: RouteSectionProps) {
-  const pages = createAsync(() => getPages());
-
-  const pagesLength = () => pages()?.length || 0;
+  const pagesLength = () => profilePages.length;
 
   return (
     <div class="container flex flex-col max-w-lg sm:max-w-3xl">
@@ -34,8 +32,8 @@ export default function ProfileLayout(props: RouteSectionProps) {
             E53E D56B 7F20 B7BB
           </div>
           <div class="text-lg md:text-xl text-label leading-tight md:leading-normal mt-2">
-            <For each={pages()}>
-              {([path, {name}], i) => (
+            <For each={profilePages}>
+              {({ path, name }, i) => (
                 <>
                   <A activeClass="link-selected" inactiveClass="link" end={true} href={path}>{name}</A>
                   {i() !== pagesLength() - 1 && <span class="mx-1">|</span>}
@@ -57,8 +55,8 @@ export default function ProfileLayout(props: RouteSectionProps) {
           <p class="sm:mr-auto">
             © {import.meta.env.VITE_LAST_UPDATE_YEAR} Yanning Chen.
             Code available on <a class="text-accent inline-block" href="https://github.com/PhotonQuantum/landingpage">
-            <SvgBrandGithub class="w-4 h-4 inline-block align-text-bottom" />
-          </a>.
+              <SvgBrandGithub class="w-4 h-4 inline-block align-text-bottom" />
+            </a>.
           </p>
           <p>
             Last updated on {import.meta.env.VITE_LAST_UPDATE}.

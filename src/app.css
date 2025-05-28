@@ -16,7 +16,7 @@ body {
 
 @utility link {
   @apply text-strong hover:text-strong-inv bg-link hover:bg-link-focused
-    transition-all ease-in-out duration-100 hover:duration-200;
+    motion-safe:transition-all motion-safe:ease-in-out motion-safe:duration-100 hover:motion-safe:duration-200;
 }
 
 @utility link-selected {
@@ -38,6 +38,10 @@ body {
 
 @utility md-icon {
   @apply w-5 h-5 inline;
+}
+
+@utility sm-icon {
+  @apply w-4 h-4 inline;
 }
 
 @utility trans-bg {
@@ -81,6 +85,18 @@ body {
   @apply bg-gradient-to-br from-ctp-base to-ctp-crust bg-ctp-base;
 }
 
+@utility bg-background-95 {
+  @apply bg-gradient-to-br from-ctp-base/95 to-ctp-crust/95 bg-ctp-base/95;
+}
+
+@utility bg-background-80 {
+  @apply bg-gradient-to-br from-ctp-base/80 to-ctp-crust/80 bg-ctp-base/80;
+}
+
+@utility bg-background-60 {
+  @apply bg-gradient-to-br from-ctp-base/60 to-ctp-crust/60 bg-ctp-base/60;
+}
+
 @utility text-label {
   @apply text-ctp-subtext0;
 }
@@ -93,8 +109,8 @@ body {
   @apply text-ctp-mauve;
 }
 
-@utility text-error {
-  @apply text-ctp-red;
+@utility border-accent {
+  @apply border-ctp-mauve;
 }
 
 @utility text-normal {
