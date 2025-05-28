@@ -16,12 +16,6 @@ interface GalleryGroupProps {
   group: GalleryGroupType;
 }
 
-const defaultLayout: () => Layout = () => ({
-  containerHeight: 0,
-  widowCount: 0,
-  boxes: [],
-});
-
 export function GalleryGroup(props: GalleryGroupProps) {
   const group = untrack(() => props.group);
   const [isExpanded, setIsExpanded] = createSignal(false);
@@ -62,9 +56,13 @@ export function GalleryGroup(props: GalleryGroupProps) {
 
     return justifiedLayout(displayAspectRatios(), options);
   });
+  
+  // NOTE intentionally not reactive.
+  const initialLayout = layout_();
+  const initialVisibleImages = sortImagesByFeatured(images, featuredSet).slice(0, initialLayout.boxes.length)
 
-  const [visibleImages, setVisibleImages] = createStore<(Picture & ImageWithBlurhash & ExifMetadata)[]>([]);
-  const [layout, setLayout] = createStore<Layout>(defaultLayout()); // NOTE: ditto. JS looks like Python in this case!
+  const [visibleImages, setVisibleImages] = createStore<(Picture & ImageWithBlurhash & ExifMetadata)[]>(initialVisibleImages);
+  const [layout, setLayout] = createStore<Layout>(initialLayout);
   createEffect(() => {
     batch(() => {
       const newLayout = layout_();
