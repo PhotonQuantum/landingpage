@@ -1,4 +1,4 @@
-import { Accessor, Component, createEffect, createMemo, createRenderEffect, createSignal, For, on, onCleanup, onMount, splitProps } from "solid-js";
+import { Component, createSignal, For } from "solid-js";
 import { Picture } from "vite-imagetools";
 import { LayoutBox } from "~/lib/gallery/types";
 import { ExifMetadata, ImageWithBlurhash } from "~/apis/galleryData";
@@ -8,30 +8,14 @@ import SvgStopwatch from "@tabler/icons/outline/stopwatch.svg"
 
 interface GalleryImageProps {
   image: Picture & ImageWithBlurhash & ExifMetadata;
-  box: Accessor<LayoutBox>;
+  box: LayoutBox;
   isTransitioning: boolean;
 }
 
 export const GalleryImage: Component<GalleryImageProps> = (props) => {
   const image = () => props.image;
-  const isTransitioning = createMemo(() => props.isTransitioning);
-  const box = () => props.box();
-
-  createEffect(() => {
-    console.log("src effect", image().img.src);
-  });
-
-  createEffect(() => {
-    console.log("filename effect", image().filename);
-  })
-
-  onMount(() => {
-    console.log("component mount", image().filename);
-  })
-
-  onCleanup(() => {
-    console.log("component unmount", image().filename);
-  })
+  const isTransitioning = () => props.isTransitioning;
+  const box = () => props.box;
 
   const [isLoaded, setIsLoaded] = createSignal(false);
 

@@ -9,3 +9,9 @@ export interface LayoutBox {
   width: number;
   height: number;
 } 
+
+export interface Layout {
+  containerHeight: number;
+  widowCount: number;
+  boxes: LayoutBox[];
+}

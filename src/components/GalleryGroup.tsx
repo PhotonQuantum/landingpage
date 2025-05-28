@@ -1,8 +1,8 @@
-import { createSignal, createMemo, onCleanup, createEffect, For, Accessor, batch, untrack } from "solid-js";
+import { createSignal, createMemo, onCleanup, createEffect, For, batch, untrack } from "solid-js";
 import justifiedLayout from "justified-layout";
 import { createElementSize } from "@solid-primitives/resize-observer";
 import { createIntersectionObserver } from "@solid-primitives/intersection-observer";
-import { LayoutBox } from "~/lib/gallery/types";
+import { Layout } from "~/lib/gallery/types";
 import { scrollToElementWithCallback } from "~/lib/gallery/utils";
 import { sortImagesByFeatured, identity } from "~/lib/gallery/helpers";
 import { ExifMetadata, GalleryGroup as GalleryGroupType, ImageWithBlurhash } from "~/apis/galleryData";
@@ -16,14 +16,11 @@ interface GalleryGroupProps {
   group: GalleryGroupType;
 }
 
-interface Layout {
-  containerHeight: number;
-  widowCount: number;
-  boxes: LayoutBox[];
-}
-
-type PicItem = Picture & ImageWithBlurhash & ExifMetadata;
-type PicArray = PicItem[];
+const defaultLayout: () => Layout = () => ({
+  containerHeight: 0,
+  widowCount: 0,
+  boxes: [],
+});
 
 export function GalleryGroup(props: GalleryGroupProps) {
   const group = untrack(() => props.group);
@@ -46,17 +43,16 @@ export function GalleryGroup(props: GalleryGroupProps) {
   const featuredSet = new Set(allFeatured);
 
   // NOTE: I didn't know modifications to the store would affect the original array! Copy it here.
-  const [displayImages, setDisplayImages] = createStore<PicArray>(images.map(img => ({ ...img })));
+  const [displayImages, setDisplayImages] = createStore(images.map(img => ({ ...img })));
 
   createEffect(() => {
-    const newImages = isExpanded() ? images : sortImagesByFeatured(images, featuredSet)
-    setDisplayImages(reconcile(newImages, { key: "filename", merge: true }))
+    setDisplayImages(reconcile(isExpanded() ? images : sortImagesByFeatured(images, featuredSet), { key: "filename", merge: true }))
   })
 
   const displayAspectRatios = () =>
     displayImages.map((img) => img.img.w / img.img.h);
 
-  const layout = createMemo(() => {
+  const layout_ = createMemo(() => {
     const options = {
       containerWidth: width(),
       targetRowHeight: 220,
@@ -67,14 +63,13 @@ export function GalleryGroup(props: GalleryGroupProps) {
     return justifiedLayout(displayAspectRatios(), options);
   });
 
-  const [visibleImages, setVisibleImages] = createStore<PicArray>([]);
-  const [syncedLayoutBoxes, setSyncedLayoutBoxes] = createStore<LayoutBox[]>([]);
-  const [syncedLayout, setSyncedLayout] = createStore<Layout>({} as Layout);
+  const [visibleImages, setVisibleImages] = createStore<(Picture & ImageWithBlurhash & ExifMetadata)[]>([]);
+  const [layout, setLayout] = createStore<Layout>(defaultLayout()); // NOTE: ditto. JS looks like Python in this case!
   createEffect(() => {
     batch(() => {
-      setVisibleImages(reconcile(displayImages.slice(0, layout().boxes.length), { key: "filename", merge: true }));
-      setSyncedLayoutBoxes(layout().boxes);
-      setSyncedLayout(layout());
+      const newLayout = layout_();
+      setVisibleImages(reconcile(displayImages.slice(0, newLayout.boxes.length), { key: "filename", merge: true }));
+      setLayout(newLayout);
     })
   })
 
@@ -84,7 +79,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
   // Update positions when layout changes
   createEffect(() => {
     // NOTE: ensure proper tracking of syncedLayout changes
-    identity(syncedLayout.boxes);
+    identity(layout.boxes);
     const container = containerRef();
     if (container && typeof window !== 'undefined') {
       requestAnimationFrame(() => animatePositions(container));
@@ -151,7 +146,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
       <GalleryHeader
         label={group.label}
         isExpanded={isExpanded}
-        canExpand={() => images.length > syncedLayoutBoxes.length}
+        canExpand={() => images.length > layout.boxes.length}
         onExpand={handleExpand}
         onCollapse={handleCollapse}
         isSticky={isSticky}
@@ -160,14 +155,13 @@ export function GalleryGroup(props: GalleryGroupProps) {
       <div
         ref={setContainerRef}
         class="relative w-full"
-        style={{ height: `${syncedLayout.containerHeight}px` }}
+        style={{ height: `${layout.containerHeight}px` }}
       >
-        <For each={visibleImages}>{(image: PicItem, i: () => number) => {
-          const box = createMemo(() => syncedLayoutBoxes[i()]);
+        <For each={visibleImages}>{(image, i) => {
           return (
             <GalleryImage
               image={image}
-              box={box}
+              box={layout.boxes[i()]}
               isTransitioning={isTransitioning()}
             />
           );
