@@ -30,3 +30,5 @@ Thumbs.db
 
 .idea
 .wrangler
+
+src/assets/gallery/**
