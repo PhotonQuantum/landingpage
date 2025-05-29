@@ -13,7 +13,6 @@ import tailwindcss from "@tailwindcss/vite";
 import { encode } from "blurhash";
 import { blurhashToCssGradientString } from "@unpic/placeholder";
 import exifReader from "exif-reader";
-import devtools from "solid-devtools/vite";
 
 const { default: mdx } = pkg;
 
@@ -101,9 +100,6 @@ export default defineConfig({
       'import.meta.env.VITE_LAST_UPDATE_YEAR': JSON.stringify(buildYearString),
     },
     plugins: [
-      devtools({
-        autoname: true
-      }),
       mdx.withImports({})({
         jsx: true,
         jsxImportSource: "solid-js",

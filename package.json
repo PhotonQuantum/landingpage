@@ -20,7 +20,7 @@
   "devDependencies": {
     "@catppuccin/palette": "^1.7.1",
     "@catppuccin/tailwindcss": "1.0.0-beta.2",
-    "@cloudflare/workers-types": "^4.20250528.0",
+    "@cloudflare/workers-types": "^4.20250529.0",
     "@fontsource/ibm-plex-mono": "^5.2.5",
     "@fontsource/ibm-plex-sans": "^5.2.5",
     "@ibm/plex-sans-sc": "^1.1.0",
@@ -40,7 +40,6 @@
     "remark-directive": "^4.0.0",
     "remark-directive-rehype": "^0.4.2",
     "remark-gfm": "^4.0.1",
-    "solid-devtools": "^0.34.0",
     "solid-js": "^1.9.7",
     "solid-mdx": "^0.0.7",
     "tailwindcss": "^4.1.8",
