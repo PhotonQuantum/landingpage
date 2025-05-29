@@ -88,11 +88,7 @@ function cleanExifData(exifData: any): any {
 export default defineConfig({
   extensions: ["mdx", "md"],
   server: {
-    compatibilityDate: "2024-12-10",
-    preset: "cloudflare-pages",
-    rollupConfig: {
-      external: ["node:async_hooks"],
-    },
+    compatibilityDate: "2025-05-29",
   },
   vite: {
     define: {
