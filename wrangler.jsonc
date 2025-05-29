@@ -7,6 +7,9 @@
         "binding": "ASSETS",
         "directory": "./.output/public"
     },
+    "build": {
+        "command": "pnpm run pull-assets && pnpm run build"
+    },
     "observability": {
         "enabled": true
     },
