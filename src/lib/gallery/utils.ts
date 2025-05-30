@@ -24,4 +24,27 @@ export function scrollToElementWithCallback(
     clearTimeout(timer);
     document.removeEventListener("scroll", eventListenerCB);
   };
-} 
+}
+
+// SolidJS directive: use:clickOutside
+export function clickOutside(el: HTMLElement, accessor: () => (e: MouseEvent) => void) {
+  const handler = (e: MouseEvent) => {
+    if (!el.contains(e.target as Node)) {
+      accessor()?.(e);
+    }
+  };
+  document.addEventListener("mousedown", handler);
+  return {
+    destroy() {
+      document.removeEventListener("mousedown", handler);
+    }
+  };
+}
+
+declare module "solid-js" {
+    namespace JSX {
+        interface Directives {
+            clickOutside: (e: MouseEvent) => void;
+        }
+    }
+}
