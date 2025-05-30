@@ -26,7 +26,7 @@ export const GalleryHeader: Component<GalleryHeaderProps> = (props) => {
 
     return (
         <div
-            class={`sticky top-16 z-10 flex items-center justify-between p-2 motion-safe:transition-all motion-safe:duration-200 ${local.isSticky() ? 'bg-background-60 backdrop-blur-sm' : ''
+            class={`sticky top-16 z-30 flex items-center justify-between p-2 motion-safe:transition-all motion-safe:duration-200 ${local.isSticky() ? 'bg-background-60 backdrop-blur-sm' : ''
                 }`}
         >
             <div class="flex items-center gap-3">
