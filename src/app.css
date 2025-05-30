@@ -14,6 +14,19 @@ body {
   --font-mono: var(--fonts-mono);
 }
 
+@theme {
+  --animate-fade-in: fade-in 0.2s;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
 @utility link {
   @apply text-strong hover:text-strong-inv bg-link hover:bg-link-focused
     motion-safe:transition-all motion-safe:ease-in-out motion-safe:duration-100 hover:motion-safe:duration-200;
