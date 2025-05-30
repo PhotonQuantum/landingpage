@@ -23,11 +23,11 @@ export function GalleryGroup(props: GalleryGroupProps) {
   const [isTransitioning, setIsTransitioning] = createSignal(false);
 
   // Refs
-  const [containerRef, setContainerRef] = createSignal<HTMLDivElement>();
-  const [sentinelRef, setSentinelRef] = createSignal<HTMLDivElement>();
+  let containerRef: HTMLDivElement | undefined;
+  let sentinelRef: HTMLDivElement | undefined;
 
   // Derived state
-  const containerSize = createElementSize(containerRef);
+  const containerSize = createElementSize(() => containerRef);
   const width = () => containerSize.width || 800;
 
   const images = group.items.flatMap(item => Object.values(item.thumbnails));
@@ -78,14 +78,14 @@ export function GalleryGroup(props: GalleryGroupProps) {
   createEffect(() => {
     // NOTE: ensure proper tracking of syncedLayout changes
     identity(layout.boxes);
-    const container = containerRef();
+    const container = containerRef;
     if (container && typeof window !== 'undefined') {
       requestAnimationFrame(() => animatePositions(container));
     }
   });
 
   createIntersectionObserver(
-    () => sentinelRef() ? [sentinelRef()!] : [],
+    () => sentinelRef ? [sentinelRef] : [],
     ([entry]) => {
       setIsSticky(!entry.isIntersecting);
     },
@@ -94,7 +94,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
 
   // Event handlers
   const handleExpand = () => {
-    const sentinel = sentinelRef();
+    const sentinel = sentinelRef;
     if (!sentinel) return;
 
     const cleanup = scrollToElementWithCallback(
@@ -111,7 +111,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
   };
 
   const handleCollapse = () => {
-    const sentinel = sentinelRef();
+    const sentinel = sentinelRef;
     if (!sentinel) return;
 
     const cleanup = scrollToElementWithCallback(
@@ -128,7 +128,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
   };
 
   const handleHeaderClick = () => {
-    const sentinel = sentinelRef();
+    const sentinel = sentinelRef;
     if (!sentinel) return;
 
     scrollToElementWithCallback(
@@ -140,7 +140,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
 
   return (
     <div>
-      <div ref={setSentinelRef} class="h-0 scroll-mt-16" />
+      <div ref={el => sentinelRef = el} class="h-0 scroll-mt-16" />
       <GalleryHeader
         label={group.label}
         isExpanded={isExpanded}
@@ -151,7 +151,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
         onHeaderClick={handleHeaderClick}
       />
       <div
-        ref={setContainerRef}
+        ref={el => containerRef = el}
         class="relative w-full"
         style={{ height: `${layout.containerHeight}px` }}
       >
