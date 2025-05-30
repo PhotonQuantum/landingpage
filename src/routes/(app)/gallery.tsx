@@ -1,5 +1,5 @@
 import { RouteSectionProps } from "@solidjs/router";
-import { getGalleryGroups } from "~/apis/galleryData";
+import { getGalleryGroups } from "~/data/galleryData";
 import { For } from "solid-js";
 import { GalleryGroup } from "~/components/GalleryGroup";
 import { createAsync } from "@solidjs/router";

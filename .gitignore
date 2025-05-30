@@ -32,3 +32,6 @@ Thumbs.db
 .wrangler
 
 src/assets/gallery/**
+
+.images
+.cache

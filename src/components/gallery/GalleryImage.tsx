@@ -1,7 +1,7 @@
 import { Component, createSignal, For } from "solid-js";
 import { Picture } from "vite-imagetools";
 import { LayoutBox } from "~/lib/gallery/types";
-import { ExifMetadata, ImageWithBlurhash } from "~/apis/galleryData";
+import { ExifMetadata, ImageWithBlurhash } from "~/data/galleryData";
 import SvgAperture from "@tabler/icons/outline/aperture.svg"
 import SvgEye from "@tabler/icons/outline/eye.svg"
 import SvgStopwatch from "@tabler/icons/outline/stopwatch.svg"
@@ -76,7 +76,7 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
             {image().exif?.Photo?.DateTimeOriginal && (
               <div class="inline-flex items-center gap-1 text-white px-3 py-1 text-xs font-mono opacity-0 group-hover:opacity-100 motion-safe:transition-opacity motion-safe:duration-200 motion-reduce:transition-none border-b border-white/50 pb-0.5">
                 {(() => {
-                  const dt = image().exif?.Photo?.DateTimeOriginal;
+                  const dt = new Date(image().exif?.Photo?.DateTimeOriginal!);
                   const offset = image().exif?.Photo?.OffsetTimeOriginal;
                   const dateOptions: Intl.DateTimeFormatOptions = {
                     month: '2-digit', day: '2-digit',

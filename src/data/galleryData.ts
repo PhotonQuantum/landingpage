@@ -1,6 +1,9 @@
-import { query } from "@solidjs/router";
 import { Exif } from "exif-reader";
 import { Picture } from "vite-imagetools";
+import imagesJson from "~/assets/gallery/images.json";
+import thumbnailsJson from "~/assets/gallery/thumbnails.json";
+import blurhashJson from "~/assets/gallery/blurhash.json";
+import exifJson from "~/assets/gallery/exif.json";
 
 export interface GalleryMeta {
   year: number;
@@ -55,29 +58,10 @@ function getMonthName(month: number) {
 // @ts-ignore
 const galleryMeta: Record<string, GalleryMeta> = import.meta.glob("~/assets/gallery/**/meta.json", { eager: true })
 
-// @ts-ignore
-export const galleryImages: Record<string, Picture & BaseImageMetadata> = import.meta.glob("~/assets/gallery/**/*.jpg", {
-  query: "?w=1024;&withoutEnlargement&format=webp;jpeg&as=picture",
-  eager: true
-})
-
-// @ts-ignore
-export const galleryThumbnails: Record<string, Picture & BaseImageMetadata> = import.meta.glob(
-  "~/assets/gallery/**/*.jpg",
-  { query: "?h=275;412.5;550;825&withoutEnlargement&format=webp;jpeg&as=picture", eager: true }
-)
-
-// @ts-ignore
-const galleryBlurhash: Record<string, BlurhashMetadata> = import.meta.glob(
-  "~/assets/gallery/**/*.jpg",
-  { query: "?w=128&format=&blurhash&as=meta:blurhash;blurhashGradient;blurhashXComponents;blurhashYComponents", eager: true }
-)
-
-// @ts-ignore
-const galleryExif: Record<string, ExifMetadata> = import.meta.glob(
-  "~/assets/gallery/**/*.jpg",
-  { query: "?format=&exif&as=meta:exif", eager: true }
-)
+const galleryImages = imagesJson as unknown as Record<string, Picture & BaseImageMetadata>;
+const galleryThumbnails = thumbnailsJson as unknown as Record<string, Picture & BaseImageMetadata>;
+const galleryBlurhash = blurhashJson as unknown as Record<string, BlurhashMetadata>;
+const galleryExif = exifJson as unknown as Record<string, ExifMetadata>;
 
 // Organize gallery items
 const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta]) => {
@@ -155,15 +139,15 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
 
 let cached: GalleryGroup[] | undefined = undefined;
 
-export const getGalleryGroups = query(async () => {
-  "use server";
-  if (cached !== undefined) {
-    return cached;
-  }
-  return cached = (await getGalleryGroupsAux()) as any;
-}, "gallery-groups");
+// export const getGalleryGroups = query(async () => {
+//   "use server";
+//   if (cached !== undefined) {
+//     return cached;
+//   }
+//   return cached = (await getGalleryGroupsAux()) as any;
+// }, "gallery-groups");
 
-function getGalleryGroupsAux(): GalleryGroup[] {
+export function getGalleryGroups(): GalleryGroup[] {
   // Group by location + month + year
   const groupsMap = new Map<string, GalleryGroup>();
   for (const item of galleryItems) {

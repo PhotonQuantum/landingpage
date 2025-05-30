@@ -1,0 +1,52 @@
+[
+  {
+    "input": "src/assets/gallery/**/*.jpg",
+    "output": {
+      "images": ".images/assets",
+      "json": "src/assets/gallery/images.json"
+    },
+    "directives": {
+      "w": [1024, ""],
+      "withoutEnlargement": [true],
+      "format": ["webp", "jpeg"],
+      "as": ["picture"]
+    }
+  },
+  {
+    "input": "src/assets/gallery/**/*.jpg",
+    "output": {
+      "images": ".images/assets",
+      "json": "src/assets/gallery/thumbnails.json"
+    },
+    "directives": {
+      "h": [275, 412.5, 550, 825],
+      "withoutEnlargement": true,
+      "format": ["webp", "jpeg"],
+      "as": ["picture"]
+    }
+  },
+  {
+    "input": "src/assets/gallery/**/*.jpg",
+    "output": {
+      "json": "src/assets/gallery/blurhash.json"
+    },
+    "directives": {
+      "w": 128,
+      "format": "webp",
+      "blurhash": true,
+      "as": [
+        "meta:blurhash;blurhashGradient;blurhashXComponents;blurhashYComponents"
+      ]
+    }
+  },
+  {
+    "input": "src/assets/gallery/**/*.jpg",
+    "output": {
+      "json": "src/assets/gallery/exif.json"
+    },
+    "directives": {
+      "exif": true,
+      "as": ["meta:exif"]
+    }
+  }
+]

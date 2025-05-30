@@ -5,7 +5,7 @@ import { createIntersectionObserver } from "@solid-primitives/intersection-obser
 import { Layout } from "~/lib/gallery/types";
 import { scrollToElementWithCallback } from "~/lib/gallery/utils";
 import { sortImagesByFeatured, identity } from "~/lib/gallery/helpers";
-import { ExifMetadata, GalleryGroup as GalleryGroupType, ImageWithBlurhash } from "~/apis/galleryData";
+import { ExifMetadata, GalleryGroup as GalleryGroupType, ImageWithBlurhash } from "~/data/galleryData";
 import { GalleryImage } from "./gallery/GalleryImage";
 import { GalleryHeader } from "./gallery/GalleryHeader";
 import { useGalleryAnimation } from "~/lib/gallery/useGalleryAnimation";

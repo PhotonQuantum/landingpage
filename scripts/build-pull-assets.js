@@ -15,6 +15,7 @@ const {
   S3_BUCKET,
   S3_ENDPOINT, // e.g. https://<accountid>.r2.cloudflarestorage.com or any S3-compatible endpoint
   S3_REGION = 'auto', // Default to 'auto' for R2, but can be set for other S3 providers
+  MAX_CONCURRENCY = 8, // Optional: max concurrent downloads
 } = process.env;
 
 if (!S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY || !S3_BUCKET || !S3_ENDPOINT) {
@@ -68,6 +69,33 @@ async function downloadObject(key, destPath) {
   await pipelineAsync(response.Body, fs.createWriteStream(destPath));
 }
 
+// Concurrency pool for downloads
+async function runConcurrent(tasks, maxConcurrency) {
+  let index = 0;
+  let active = 0;
+  let results = [];
+  return new Promise((resolve, reject) => {
+    function next() {
+      if (index === tasks.length && active === 0) {
+        resolve(Promise.all(results));
+        return;
+      }
+      while (active < maxConcurrency && index < tasks.length) {
+        const i = index++;
+        active++;
+        const p = tasks[i]()
+          .catch(reject)
+          .finally(() => {
+            active--;
+            next();
+          });
+        results.push(p);
+      }
+    }
+    next();
+  });
+}
+
 (async () => {
   try {
     const objects = await listAllObjects(remotePrefix);
@@ -75,13 +103,18 @@ async function downloadObject(key, destPath) {
       console.log('No objects found for prefix:', remotePrefix);
       return;
     }
+    // 3. Download files (concurrent)
+    const downloadTasks = [];
     for (const obj of objects) {
       if (obj.Key.endsWith('/')) continue; // skip folders
       const relativePath = path.relative(remotePrefix, obj.Key);
       const destPath = path.join(localDir, relativePath);
-      console.log(`Downloading ${obj.Key} -> ${destPath}`);
-      await downloadObject(obj.Key, destPath);
+      downloadTasks.push(() => {
+        console.log(`Downloading ${obj.Key} -> ${destPath}`);
+        return downloadObject(obj.Key, destPath);
+      });
     }
+    await runConcurrent(downloadTasks, Number(MAX_CONCURRENCY) || 8);
     console.log('All assets pulled successfully.');
   } catch (err) {
     console.error('Error pulling assets:', err);
