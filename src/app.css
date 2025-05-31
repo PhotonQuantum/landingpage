@@ -27,6 +27,15 @@ body {
   }
 }
 
+.fade-enter-active,
+.fade-exit-active {
+  transition: opacity 0.3s;
+}
+.fade-enter,
+.fade-exit-to {
+  opacity: 0;
+}
+
 @utility link {
   @apply text-strong hover:text-strong-inv bg-link hover:bg-link-focused
     motion-safe:transition-all motion-safe:ease-in-out motion-safe:duration-100 hover:motion-safe:duration-200;

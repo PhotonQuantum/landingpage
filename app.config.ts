@@ -26,6 +26,9 @@ export default defineConfig({
     compatibilityDate: "2025-05-29",
   },
   vite: {
+    server: {
+      allowedHosts: [".trycloudflare.com"]
+    },
     define: {
       'import.meta.env.VITE_LAST_UPDATE': JSON.stringify(buildDateString),
       'import.meta.env.VITE_LAST_UPDATE_YEAR': JSON.stringify(buildYearString),

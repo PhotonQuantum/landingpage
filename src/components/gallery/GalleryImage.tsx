@@ -10,12 +10,10 @@ import { useTapOrClick } from "~/lib/gallery/useTapOrClick";
 interface GalleryImageProps {
   image: Picture & ImageWithBlurhash & ExifMetadata;
   box: LayoutBox;
-  isTransitioning: boolean;
 }
 
 export const GalleryImage: Component<GalleryImageProps> = (props) => {
   const image = () => props.image;
-  const isTransitioning = () => props.isTransitioning;
   const box = () => props.box;
 
   const [isLoaded, setIsLoaded] = createSignal(false);
@@ -38,7 +36,7 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
   return (
     <div
       ref={tap.setRef}
-      class={`absolute gallery-item overflow-hidden rounded-lg cursor-pointer motion-safe:transition-opacity motion-safe:duration-300 motion-safe:ease-out ${isTransitioning() ? 'opacity-80' : 'opacity-100'}`}
+      class="absolute gallery-item overflow-hidden rounded-lg cursor-pointer"
       data-key={image().filename}
       style={{
         left: `${box().left}px`,
@@ -58,7 +56,7 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
           />
         )}
         <picture
-          class={`w-full h-full motion-safe:transition-opacity motion-safe:duration-300 motion-reduce:transition-none ${isLoaded() ? 'opacity-100' : 'opacity-0'}`}
+          class={`w-full h-full ${isLoaded() ? 'opacity-100' : 'opacity-0'}`}
         >
           <For each={Object.entries(image().sources)}>
             {([format, srcset]: [string, string]) => (

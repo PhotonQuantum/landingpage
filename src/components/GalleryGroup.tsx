@@ -1,34 +1,114 @@
-import { createSignal, createMemo, onCleanup, createEffect, For, batch, untrack } from "solid-js";
+import { createSignal, createMemo, onCleanup, createEffect, For, batch, untrack, Accessor, Setter } from "solid-js";
 import justifiedLayout from "justified-layout";
 import { createElementSize } from "@solid-primitives/resize-observer";
 import { createIntersectionObserver } from "@solid-primitives/intersection-observer";
 import { Layout } from "~/lib/gallery/types";
 import { scrollToElementWithCallback } from "~/lib/gallery/utils";
-import { sortImagesByFeatured, identity } from "~/lib/gallery/helpers";
+import { sortImagesByFeatured, identity as Identity } from "~/lib/gallery/helpers";
 import { ExifMetadata, GalleryGroup as GalleryGroupType, ImageWithBlurhash } from "~/data/galleryData";
 import { GalleryImage } from "./gallery/GalleryImage";
 import { GalleryHeader } from "./gallery/GalleryHeader";
 import { useGalleryAnimation } from "~/lib/gallery/useGalleryAnimation";
 import { createStore, reconcile } from "solid-js/store";
 import { Picture } from "vite-imagetools";
+import { TransitionGroup } from "solid-transition-group";
+import { Dynamic } from "solid-js/web";
+import { createMediaQuery } from "@solid-primitives/media";
 
 interface GalleryGroupProps {
   group: GalleryGroupType;
 }
 
+interface GalleryReducerOutput {
+  isExpanded: Accessor<boolean>;
+  visibleImages: (Picture & ImageWithBlurhash & ExifMetadata)[];
+  layout: Layout;
+}
+
+interface GalleryReducerAction {
+  setIsExpanded: (isExpanded: boolean) => void;
+}
+
+const galleryReducer = (
+  containerRef: Accessor<HTMLDivElement | undefined>,
+  images: (Picture & ImageWithBlurhash & ExifMetadata)[],
+  featuredSet: Set<string>,
+): [GalleryReducerOutput, GalleryReducerAction] => {
+  const containerSize = createElementSize(containerRef);
+  const width = () => containerSize.width || 800;
+
+  const [isExpanded, setIsExpanded] = createSignal(false);
+
+  const initialDisplayImages = sortImagesByFeatured(images, featuredSet);
+  const [displayImages, setDisplayImages] = createStore(initialDisplayImages.map(img => ({ ...img })));
+
+  const layout_ = (isExpanded: boolean, images: (Picture & ImageWithBlurhash & ExifMetadata)[]) => {
+    const aspectRatios = images.map((img) => img.img.w / img.img.h);
+
+    const options = {
+      containerWidth: width(),
+      targetRowHeight: 220,
+      boxSpacing: 8,
+      maxNumRows: isExpanded ? undefined : 3,
+    };
+
+    return justifiedLayout(aspectRatios, options);
+  };
+
+  // NOTE intentionally not reactive.
+  const initialLayout = layout_(false, initialDisplayImages);
+  const initialVisibleImages = initialDisplayImages.slice(0, initialLayout.boxes.length)
+
+  const [visibleImages, setVisibleImages] = createStore<(Picture & ImageWithBlurhash & ExifMetadata)[]>(initialVisibleImages);
+  const [layout, setLayout] = createStore<Layout>(initialLayout);
+
+  let ignoreOnce = false;
+  createEffect(() => {
+    batch(() => {
+      if (ignoreOnce) {
+        ignoreOnce = false;
+        return;
+      }
+
+      const newLayout = layout_(isExpanded(), displayImages);
+      setVisibleImages(reconcile(displayImages.slice(0, newLayout.boxes.length), { key: "filename", merge: true }));
+      setLayout(newLayout);
+    })
+  })
+
+  const setIsExpanded_ = (isExpanded: boolean) => {
+    batch(() => {
+      setIsExpanded(isExpanded);
+      const newDisplayImages = reconcile(isExpanded ? images : sortImagesByFeatured(images, featuredSet), { key: "filename", merge: true })(displayImages);
+      const newLayout = layout_(isExpanded, newDisplayImages);
+      setDisplayImages(newDisplayImages);
+      setVisibleImages(reconcile(newDisplayImages.slice(0, newLayout.boxes.length), { key: "filename", merge: true }));
+      setLayout(newLayout);
+
+      // Do not fire this effect again when isExpanded changes. Can cause animation broken.
+      ignoreOnce = true;
+    })
+  }
+
+  return [{
+    isExpanded,
+    visibleImages,
+    layout,
+  }, {
+    setIsExpanded: setIsExpanded_,
+  }
+  ];
+}
+
 export function GalleryGroup(props: GalleryGroupProps) {
   const group = untrack(() => props.group);
-  const [isExpanded, setIsExpanded] = createSignal(false);
   const [isSticky, setIsSticky] = createSignal(false);
-  const [isTransitioning, setIsTransitioning] = createSignal(false);
+
+  const prefersReducedMotion = createMediaQuery("(prefers-reduced-motion: reduce)");
 
   // Refs
   let containerRef: HTMLDivElement | undefined;
   let sentinelRef: HTMLDivElement | undefined;
-
-  // Derived state
-  const containerSize = createElementSize(() => containerRef);
-  const width = () => containerSize.width || 800;
 
   const images = group.items.flatMap(item => Object.values(item.thumbnails));
   const allFeatured = group.items.flatMap(item =>
@@ -36,51 +116,21 @@ export function GalleryGroup(props: GalleryGroupProps) {
   );
   const featuredSet = new Set(allFeatured);
 
-  // NOTE: I didn't know modifications to the store would affect the original array! Copy it here.
-  const [displayImages, setDisplayImages] = createStore(images.map(img => ({ ...img })));
+  const [{ isExpanded, visibleImages, layout }, { setIsExpanded }] = galleryReducer(() => containerRef, images, featuredSet);
 
-  createEffect(() => {
-    setDisplayImages(reconcile(isExpanded() ? images : sortImagesByFeatured(images, featuredSet), { key: "filename", merge: true }))
-  })
-
-  const displayAspectRatios = () =>
-    displayImages.map((img) => img.img.w / img.img.h);
-
-  const layout_ = createMemo(() => {
-    const options = {
-      containerWidth: width(),
-      targetRowHeight: 220,
-      boxSpacing: 8,
-      maxNumRows: isExpanded() ? undefined : 3,
-    };
-
-    return justifiedLayout(displayAspectRatios(), options);
-  });
-  
-  // NOTE intentionally not reactive.
-  const initialLayout = layout_();
-  const initialVisibleImages = sortImagesByFeatured(images, featuredSet).slice(0, initialLayout.boxes.length)
-
-  const [visibleImages, setVisibleImages] = createStore<(Picture & ImageWithBlurhash & ExifMetadata)[]>(initialVisibleImages);
-  const [layout, setLayout] = createStore<Layout>(initialLayout);
-  createEffect(() => {
-    batch(() => {
-      const newLayout = layout_();
-      setVisibleImages(reconcile(displayImages.slice(0, newLayout.boxes.length), { key: "filename", merge: true }));
-      setLayout(newLayout);
-    })
-  })
+  const layoutMap = createMemo(() => new Map(layout.boxes.map((box, i) => [visibleImages[i].filename, box])), new Map());
 
   // Animation logic
   const { animatePositions } = useGalleryAnimation();
 
   // Update positions when layout changes
   createEffect(() => {
-    // NOTE: ensure proper tracking of syncedLayout changes
-    identity(layout.boxes);
     const container = containerRef;
     if (container && typeof window !== 'undefined') {
-      requestAnimationFrame(() => animatePositions(container));
+      const localLayoutMap = layoutMap();
+      requestAnimationFrame(() => {
+        animatePositions(container, localLayoutMap);
+      });
     }
   });
 
@@ -97,34 +147,26 @@ export function GalleryGroup(props: GalleryGroupProps) {
     const sentinel = sentinelRef;
     if (!sentinel) return;
 
-    const cleanup = scrollToElementWithCallback(
+    scrollToElementWithCallback(
       sentinel,
       () => {
-        setIsTransitioning(true);
         setIsExpanded(true);
-        setTimeout(() => setIsTransitioning(false), 300);
       },
       { behavior: 'smooth', block: 'start' }
     );
-
-    onCleanup(cleanup);
   };
 
   const handleCollapse = () => {
     const sentinel = sentinelRef;
     if (!sentinel) return;
 
-    const cleanup = scrollToElementWithCallback(
+    scrollToElementWithCallback(
       sentinel,
       () => {
-        setIsTransitioning(true);
         setIsExpanded(false);
-        setTimeout(() => setIsTransitioning(false), 300);
       },
       { behavior: 'smooth', block: 'start' }
     );
-
-    onCleanup(cleanup);
   };
 
   const handleHeaderClick = () => {
@@ -155,15 +197,16 @@ export function GalleryGroup(props: GalleryGroupProps) {
         class="relative w-full"
         style={{ height: `${layout.containerHeight}px` }}
       >
-        <For each={visibleImages}>{(image, i) => {
-          return (
-            <GalleryImage
-              image={image}
-              box={layout.boxes[i()]}
-              isTransitioning={isTransitioning()}
-            />
-          );
-        }}</For>
+        <Dynamic component={prefersReducedMotion() ? "div" : TransitionGroup} name="fade">
+            <For each={visibleImages}>{(image, i) => {
+              return (
+                <GalleryImage
+                  image={image}
+                  box={layout.boxes[i()]}
+                />
+              );
+            }}</For>
+        </Dynamic>
       </div>
     </div>
   );
