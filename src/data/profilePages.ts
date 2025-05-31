@@ -11,7 +11,11 @@ export interface Profile {
 const profiles = import.meta.glob("~/routes/\\(profile\\)/*.mdx", { import: "metadata", eager: true });
 
 export const profilePages: Profile[] = Object.entries(profiles).map(([path, metadata]) => {
-    const relPath = path.split("/").pop()!;
+    let relPath = path.split("/").pop()!;
+    // Remove file extension
+    relPath = relPath.replace(/\.[^/.]+$/, "");
+    // Handle index page
+    relPath = relPath === "index" ? "/" : relPath;
     return {
         path: relPath,
         ...metadata as Metadata,
