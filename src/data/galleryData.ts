@@ -137,16 +137,6 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
   return dateA.getTime() - dateB.getTime();
 });
 
-let cached: GalleryGroup[] | undefined = undefined;
-
-// export const getGalleryGroups = query(async () => {
-//   "use server";
-//   if (cached !== undefined) {
-//     return cached;
-//   }
-//   return cached = (await getGalleryGroupsAux()) as any;
-// }, "gallery-groups");
-
 export function getGalleryGroups(): GalleryGroup[] {
   // Group by location + month + year
   const groupsMap = new Map<string, GalleryGroup>();
