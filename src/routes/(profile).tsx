@@ -4,7 +4,7 @@ import { For, Suspense } from "solid-js";
 import Avatar from "~/assets/images/avatar.jpg?h=480;240;120"
 import { Image, ImagesProvider } from "~/components/Image";
 import SvgBrandGithub from "@tabler/icons/outline/brand-github.svg"
-import { profilePages } from "~/routes/(profile)/pages";
+import { profilePages } from "~/data/profilePages";
 
 export default function ProfileLayout(props: RouteSectionProps) {
   const pagesLength = () => profilePages.length;
