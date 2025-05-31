@@ -60,7 +60,7 @@ const galleryMeta: Record<string, GalleryMeta> = import.meta.glob("~/assets/gall
 
 const galleryImages = imagesJson as unknown as Record<string, Picture & BaseImageMetadata>;
 const galleryThumbnails = thumbnailsJson as unknown as Record<string, Picture & BaseImageMetadata>;
-const galleryBlurhash = blurhashJson as unknown as Record<string, BlurhashMetadata>;
+const galleryBlurhash = blurhashJson as unknown as Record<string, { blurhash: BlurhashMetadata }>;
 const galleryExif = exifJson as unknown as Record<string, ExifMetadata>;
 
 // Organize gallery items
@@ -71,7 +71,7 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
     .filter(([imgPath]) => imgPath.includes(id))
     .reduce((acc, [path, picture]) => {
       const filename = path.split('/').pop()?.replace('.jpg', '') || '';
-      const blurhashData = galleryBlurhash[path];
+      const blurhashData = galleryBlurhash[path].blurhash;
       const exifData = galleryExif[path];
       // Patch OffsetTimeOriginal if missing but present in meta
       if (exifData && exifData.exif && meta.offset) {
@@ -100,7 +100,7 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
     .filter(([imgPath]) => imgPath.includes(id))
     .reduce((acc, [path, picture]) => {
       const filename = path.split('/').pop()?.replace('.jpg', '') || '';
-      const blurhashData = galleryBlurhash[path];
+      const blurhashData = galleryBlurhash[path].blurhash;
       const exifData = galleryExif[path];
       // Patch OffsetTimeOriginal if missing but present in meta
       if (exifData && exifData.exif && meta.offset) {

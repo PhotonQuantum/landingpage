@@ -1,10 +1,10 @@
-import { createSignal, createMemo, onCleanup, createEffect, For, batch, untrack, Accessor, Setter } from "solid-js";
+import { createSignal, createMemo, createEffect, For, batch, untrack, Accessor, onMount } from "solid-js";
 import justifiedLayout from "justified-layout";
 import { createElementSize } from "@solid-primitives/resize-observer";
 import { createIntersectionObserver } from "@solid-primitives/intersection-observer";
-import { Layout } from "~/lib/gallery/types";
+import { Layout, positionLike } from "~/lib/gallery/types";
 import { scrollToElementWithCallback } from "~/lib/gallery/utils";
-import { sortImagesByFeatured, identity as Identity } from "~/lib/gallery/helpers";
+import { sortImagesByFeatured } from "~/lib/gallery/helpers";
 import { ExifMetadata, GalleryGroup as GalleryGroupType, ImageWithBlurhash } from "~/data/galleryData";
 import { GalleryImage } from "./gallery/GalleryImage";
 import { GalleryHeader } from "./gallery/GalleryHeader";
@@ -103,7 +103,6 @@ const galleryReducer = (
 export function GalleryGroup(props: GalleryGroupProps) {
   const group = untrack(() => props.group);
   const [isSticky, setIsSticky] = createSignal(false);
-
   const prefersReducedMotion = createMediaQuery("(prefers-reduced-motion: reduce)");
 
   // Refs
@@ -180,6 +179,12 @@ export function GalleryGroup(props: GalleryGroupProps) {
     );
   };
 
+  // Layout mode: 'grid' for SSR, 'justified' for client
+  const [layoutMode, setLayoutMode] = createSignal<'grid' | 'justified'>("grid");
+  onMount(() => {
+    setLayoutMode("justified");
+  });
+
   return (
     <div>
       <div ref={el => sentinelRef = el} class="h-0 scroll-mt-16" />
@@ -194,18 +199,17 @@ export function GalleryGroup(props: GalleryGroupProps) {
       />
       <div
         ref={el => containerRef = el}
-        class="relative w-full"
-        style={{ height: `${layout.containerHeight}px` }}
+        class={layoutMode() === 'justified' ? 'relative w-full' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2'}
+        style={layoutMode() === 'justified' ? { height: `${layout.containerHeight}px` } : {}}
       >
         <Dynamic component={prefersReducedMotion() ? "div" : TransitionGroup} name="fade">
-            <For each={visibleImages}>{(image, i) => {
-              return (
-                <GalleryImage
-                  image={image}
-                  box={layout.boxes[i()]}
-                />
-              );
-            }}</For>
+          <For each={visibleImages}>{(image, i) => (
+            <GalleryImage
+              image={image}
+              box={layoutMode() === 'justified' ? layout.boxes[i()] : positionLike(layout.boxes[i()])}
+              mode={layoutMode()}
+            />
+          )}</For>
         </Dynamic>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { Component, createSignal, For } from "solid-js";
+import type { JSX } from "solid-js";
 import { Picture } from "vite-imagetools";
 import { LayoutBox } from "~/lib/gallery/types";
 import { ExifMetadata, ImageWithBlurhash } from "~/data/galleryData";
@@ -10,11 +11,13 @@ import { useTapOrClick } from "~/lib/gallery/useTapOrClick";
 interface GalleryImageProps {
   image: Picture & ImageWithBlurhash & ExifMetadata;
   box: LayoutBox;
+  mode: 'grid' | 'justified';
 }
 
 export const GalleryImage: Component<GalleryImageProps> = (props) => {
   const image = () => props.image;
   const box = () => props.box;
+  const mode = () => props.mode;
 
   const [isLoaded, setIsLoaded] = createSignal(false);
   const tap = useTapOrClick({
@@ -33,17 +36,27 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
     return `1/${Math.round(1 / exposure)}`;
   }
 
+  // Style for the image container
+  const containerStyle = (): JSX.CSSProperties =>
+    mode() === 'justified'
+      ? {
+          position: 'absolute',
+          left: `${box().left}px`,
+          top: `${box().top}px`,
+          width: `${box().width}px`,
+          height: `${box().height}px`,
+        }
+      : {
+          position: 'static',
+          width: '100%',
+        };
+
   return (
     <div
       ref={tap.setRef}
-      class="absolute gallery-item overflow-hidden rounded-lg cursor-pointer"
+      class={`gallery-item overflow-hidden rounded-lg cursor-pointer${mode() === 'justified' ? ' absolute' : ' relative aspect-[4/3]'}`}
       data-key={image().filename}
-      style={{
-        left: `${box().left}px`,
-        top: `${box().top}px`,
-        width: `${box().width}px`,
-        height: `${box().height}px`,
-      }}
+      style={containerStyle()}
       {...tap.bind}
     >
       <div class={`relative w-full h-full group${tap.overlayActive() ? ' overlay-active' : ''}`}>
@@ -56,7 +69,7 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
           />
         )}
         <picture
-          class={`w-full h-full ${isLoaded() ? 'opacity-100' : 'opacity-0'}`}
+          class={`absolute inset-0 w-full h-full ${isLoaded() ? 'opacity-100' : 'opacity-0'}`}
         >
           <For each={Object.entries(image().sources)}>
             {([format, srcset]: [string, string]) => (
@@ -69,7 +82,7 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
             height={box().height}
             sizes={`${box().width}px`}
             alt={image().filename}
-            class="w-full h-full object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
+            class="absolute inset-0 w-full h-full object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
             decoding="async"
             onLoad={() => setIsLoaded(true)}
