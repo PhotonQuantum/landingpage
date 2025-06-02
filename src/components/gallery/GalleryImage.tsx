@@ -1,4 +1,4 @@
-import { Component, createSignal, For } from "solid-js";
+import { Component, createSignal, For, Show } from "solid-js";
 import type { JSX } from "solid-js";
 import { Picture } from "vite-imagetools";
 import { LayoutBox } from "~/lib/gallery/types";
@@ -7,6 +7,13 @@ import SvgAperture from "@tabler/icons/outline/aperture.svg"
 import SvgEye from "@tabler/icons/outline/eye.svg"
 import SvgStopwatch from "@tabler/icons/outline/stopwatch.svg"
 import { useTapOrClick } from "~/lib/gallery/useTapOrClick";
+import { createLocale } from "~/lib/gallery/createLocale";
+import { dateWithOffset } from "~/lib/gallery/utils";
+
+const dateOptions: Intl.DateTimeFormatOptions = {
+  month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit'
+};
 
 interface GalleryImageProps {
   image: Picture & ImageWithBlurhash & ExifMetadata;
@@ -28,6 +35,17 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
     closeOnOutside: true,
   });
 
+  const locale = createLocale();
+
+  const dateTimeLabel = () => {
+    const localImage = image();
+    if (!localImage.exif.Photo?.DateTimeOriginal) return undefined;
+    const dt = new Date(localImage.exif.Photo.DateTimeOriginal);
+    const offset = localImage.exif.Photo.OffsetTimeOriginal;
+    const dtOffset = dateWithOffset(dt, offset);
+    return dtOffset.toLocaleString(locale(), dateOptions);
+  }
+
   // Helper to format exposure time
   function formatExposureTime(exposure: number | undefined): string {
     if (!exposure) return '';
@@ -40,16 +58,16 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
   const containerStyle = (): JSX.CSSProperties =>
     mode() === 'justified'
       ? {
-          position: 'absolute',
-          left: `${box().left}px`,
-          top: `${box().top}px`,
-          width: `${box().width}px`,
-          height: `${box().height}px`,
-        }
+        position: 'absolute',
+        left: `${box().left}px`,
+        top: `${box().top}px`,
+        width: `${box().width}px`,
+        height: `${box().height}px`,
+      }
       : {
-          position: 'static',
-          width: '100%',
-        };
+        position: 'static',
+        width: '100%',
+      };
 
   return (
     <div
@@ -93,28 +111,11 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
         {/* Metadata overlay as sibling */}
         <div class="absolute inset-0 flex flex-col justify-end rounded-lg pointer-events-none">
           <div class="relative z-10 p-3 text-white text-sm">
-            {image().exif?.Photo?.DateTimeOriginal && (
-              <div class={`inline-flex items-center gap-1 text-white px-3 py-1 text-xs font-mono opacity-0 group-hover:opacity-100 ${tap.overlayActive() ? '!opacity-100' : ''} motion-safe:transition-opacity motion-safe:duration-200 motion-reduce:transition-none border-b border-white/50 pb-0.5`}>
-                {(() => {
-                  const dt = new Date(image().exif?.Photo?.DateTimeOriginal!);
-                  const offset = image().exif?.Photo?.OffsetTimeOriginal;
-                  const dateOptions: Intl.DateTimeFormatOptions = {
-                    month: '2-digit', day: '2-digit',
-                    hour: '2-digit', minute: '2-digit',
-                    dayPeriod: 'narrow'
-                  };
-                  function formatWithOffset(date: Date, offset?: string) {
-                    if (offset) {
-                      const iso = date.toISOString().replace(/Z|[+-]\d{2}:\d{2}$/, offset);
-                      return new Date(iso).toLocaleString(undefined, dateOptions);
-                    } else {
-                      return date.toLocaleString(undefined, dateOptions);
-                    }
-                  }
-                  return formatWithOffset(dt!, offset);
-                })()}
+            <Show when={dateTimeLabel()}>{(label) => (
+              <div class={`inline-flex items-center gap-1 text-white whitespace-nowrap px-3 py-1 text-xs font-mono opacity-0 group-hover:opacity-100 ${tap.overlayActive() ? '!opacity-100' : ''} motion-safe:transition-opacity motion-safe:duration-200 motion-reduce:transition-none border-b border-white/50 pb-0.5`}>
+                {label()}
               </div>
-            )}
+            )}</Show>
             <div class="flex flex-wrap flex-row gap-0.5 mt-1">
               <div class="flex basis-[11rem] flex-grow flex-wrap gap-0.5 flex-row">
                 <span class={`basis-[5rem] flex-grow flex items-center gap-1 whitespace-nowrap backdrop-blur-sm bg-white/10 rounded px-2 py-1 opacity-0 group-hover:opacity-100 motion-safe:transition-opacity motion-safe:duration-200 motion-reduce:transition-none text-xs ${tap.overlayActive() ? '!opacity-100' : ''}`}>

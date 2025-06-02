@@ -3,7 +3,7 @@ import justifiedLayout from "justified-layout";
 import { createElementSize } from "@solid-primitives/resize-observer";
 import { createIntersectionObserver } from "@solid-primitives/intersection-observer";
 import { Layout, positionLike } from "~/lib/gallery/types";
-import { scrollToElementWithCallback } from "~/lib/gallery/utils";
+import { getMonthName, scrollToElementWithCallback } from "~/lib/gallery/utils";
 import { sortImagesByFeatured } from "~/lib/gallery/helpers";
 import { ExifMetadata, GalleryGroup as GalleryGroupType, ImageWithBlurhash } from "~/data/galleryData";
 import { GalleryImage } from "./gallery/GalleryImage";
@@ -14,6 +14,7 @@ import { Picture } from "vite-imagetools";
 import { TransitionGroup } from "solid-transition-group";
 import { Dynamic } from "solid-js/web";
 import { createMediaQuery } from "@solid-primitives/media";
+import { createLocale } from "~/lib/gallery/createLocale";
 
 interface GalleryGroupProps {
   group: GalleryGroupType;
@@ -104,6 +105,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
   const group = untrack(() => props.group);
   const [isSticky, setIsSticky] = createSignal(false);
   const prefersReducedMotion = createMediaQuery("(prefers-reduced-motion: reduce)");
+  const locale = createLocale();
 
   // Refs
   let containerRef: HTMLDivElement | undefined;
@@ -189,7 +191,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
     <div>
       <div ref={el => sentinelRef = el} class="h-0 scroll-mt-16" />
       <GalleryHeader
-        label={group.label}
+        label={`${group.location} \u00B7 ${getMonthName(group.date.getMonth(), locale())} ${group.date.getFullYear()}`}
         isExpanded={isExpanded}
         canExpand={() => images.length > layout.boxes.length}
         onExpand={handleExpand}

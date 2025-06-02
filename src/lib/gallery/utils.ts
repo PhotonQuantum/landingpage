@@ -3,7 +3,7 @@ export function scrollToElementWithCallback(
   callback: () => void,
   options?: boolean | ScrollIntoViewOptions
 ): () => void {
-  if (typeof window === 'undefined') return () => {};
+  if (typeof window === 'undefined') return () => { };
 
   const eventListenerCB = () => {
     clearTimeout(timer);
@@ -41,10 +41,24 @@ export function clickOutside(el: HTMLElement, accessor: () => (e: MouseEvent) =>
   };
 }
 
+export const dateWithOffset = (date: Date, offset?: string) => {
+  if (offset) {
+    const iso = date.toISOString().replace(/Z|[+-]\d{2}:\d{2}$/, offset);
+    return new Date(iso);
+  } else {
+    return date;
+  }
+}
+
+
+export function getMonthName(month: number, locale?: string) {
+  return new Date(0, month - 1).toLocaleString(locale, { month: "long" });
+}
+
 declare module "solid-js" {
-    namespace JSX {
-        interface Directives {
-            clickOutside: (e: MouseEvent) => void;
-        }
+  namespace JSX {
+    interface Directives {
+      clickOutside: (e: MouseEvent) => void;
     }
+  }
 }

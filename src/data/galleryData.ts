@@ -45,15 +45,11 @@ export interface GalleryItem {
 }
 
 export type GalleryGroup = {
-  label: string; // e.g., "Montreal · April 2024"
+  location: string;
   date: Date;
   items: GalleryItem[];
 };
 
-// Helper to get month name
-function getMonthName(month: number) {
-  return new Date(0, month - 1).toLocaleString("default", { month: "long" });
-}
 
 // @ts-ignore
 const galleryMeta: Record<string, GalleryMeta> = import.meta.glob("~/assets/gallery/**/meta.json", { eager: true })
@@ -66,7 +62,7 @@ const galleryExif = exifJson as unknown as Record<string, ExifMetadata>;
 // Organize gallery items
 const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta]) => {
   const id = path.split('/').slice(-2)[0]; // Get the folder name as ID
-  
+
   const images = Object.entries(galleryImages)
     .filter(([imgPath]) => imgPath.includes(id))
     .reduce((acc, [path, picture]) => {
@@ -80,8 +76,8 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
           exifData.exif.Photo.OffsetTimeOriginal = meta.offset;
         }
       }
-      acc[filename] = { 
-        ...picture, 
+      acc[filename] = {
+        ...picture,
         filename: id + '/' + filename,
         ...(blurhashData && {
           blurhash: blurhashData.blurhash,
@@ -109,8 +105,8 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
           exifData.exif.Photo.OffsetTimeOriginal = meta.offset;
         }
       }
-      acc[filename] = { 
-        ...picture, 
+      acc[filename] = {
+        ...picture,
         filename: id + '/' + filename,
         ...(blurhashData && {
           blurhash: blurhashData.blurhash,
@@ -143,10 +139,10 @@ export function getGalleryGroups(): GalleryGroup[] {
   for (const item of galleryItems) {
     const { location, month, year } = item.meta;
     const date = new Date(year, month - 1);
-    const label = `${location} \u00B7 ${getMonthName(month)} ${year}`;
+    // NOTE const label = `${location} \u00B7 ${getMonthName(month)} ${year}`;
     const key = `${location}-${year}-${month}`;
     if (!groupsMap.has(key)) {
-      groupsMap.set(key, { label, date, items: [] });
+      groupsMap.set(key, { location, date, items: [] });
     }
     groupsMap.get(key)!.items.push(item);
   }
