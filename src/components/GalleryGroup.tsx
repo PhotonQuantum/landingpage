@@ -140,7 +140,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
     ([entry]) => {
       setIsSticky(!entry.isIntersecting);
     },
-    { threshold: [0] }
+    { rootMargin: "-64px 0px 0px 0px", threshold: [0] }
   );
 
   // Event handlers
