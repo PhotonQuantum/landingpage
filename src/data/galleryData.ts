@@ -13,6 +13,8 @@ export interface GalleryMeta {
   topic: string;
   featured?: string[];
   offset?: string;
+  doubleRow?: string[];
+  overrideOrder?: string[][];
 }
 
 interface BlurhashMetadata {
@@ -40,8 +42,8 @@ export interface ImageWithBlurhash extends BaseImageMetadata {
 export interface GalleryItem {
   id: string;
   meta: GalleryMeta;
-  images: Record<string, Picture & ImageWithBlurhash & ExifMetadata>;
-  thumbnails: Record<string, Picture & ImageWithBlurhash & ExifMetadata>;
+  images: [string, Picture & ImageWithBlurhash & ExifMetadata][];
+  thumbnails: [string, Picture & ImageWithBlurhash & ExifMetadata][];
 }
 
 export type GalleryGroup = {
@@ -63,9 +65,9 @@ const galleryExif = exifJson as unknown as Record<string, ExifMetadata>;
 const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta]) => {
   const id = path.split('/').slice(-2)[0]; // Get the folder name as ID
 
-  const images = Object.entries(galleryImages)
+  let imagesArr = Object.entries(galleryImages)
     .filter(([imgPath]) => imgPath.includes(id))
-    .reduce((acc, [path, picture]) => {
+    .map(([path, picture]) => {
       const filename = path.split('/').pop()?.replace('.jpg', '') || '';
       const blurhashData = galleryBlurhash[path].blurhash;
       const exifData = galleryExif[path];
@@ -76,7 +78,7 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
           exifData.exif.Photo.OffsetTimeOriginal = meta.offset;
         }
       }
-      acc[filename] = {
+      return [filename, {
         ...picture,
         filename: id + '/' + filename,
         ...(blurhashData && {
@@ -88,13 +90,28 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
         ...(exifData && {
           exif: exifData.exif,
         })
-      };
-      return acc;
-    }, {} as Record<string, Picture & ImageWithBlurhash & ExifMetadata>);
+      }] as [string, Picture & ImageWithBlurhash & ExifMetadata];
+    }).sort(([, a], [, b]) => a.filename.localeCompare(b.filename));
 
-  const thumbnails = Object.entries(galleryThumbnails)
+  if (meta.overrideOrder) {
+    for (const [fst, snd] of meta.overrideOrder) {
+      const fst_ = fst.replace('.jpg', '');
+      const snd_ = snd.replace('.jpg', '');
+      const fstIdx = imagesArr.findIndex(([k]) => k === fst_);
+      const sndIdx = imagesArr.findIndex(([k]) => k === snd_);
+      if (fstIdx !== -1 && sndIdx !== -1 && fstIdx !== sndIdx - 1) {
+        // Remove fst from its current position
+        const [fstItem] = imagesArr.splice(fstIdx, 1);
+        // Insert fst just before snd
+        const insertIdx = sndIdx > fstIdx ? sndIdx - 1 : sndIdx;
+        imagesArr.splice(insertIdx, 0, fstItem);
+      }
+    }
+  }
+
+  let thumbnailsArr = Object.entries(galleryThumbnails)
     .filter(([imgPath]) => imgPath.includes(id))
-    .reduce((acc, [path, picture]) => {
+    .map(([path, picture]) => {
       const filename = path.split('/').pop()?.replace('.jpg', '') || '';
       const blurhashData = galleryBlurhash[path].blurhash;
       const exifData = galleryExif[path];
@@ -105,7 +122,7 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
           exifData.exif.Photo.OffsetTimeOriginal = meta.offset;
         }
       }
-      acc[filename] = {
+      return [filename, {
         ...picture,
         filename: id + '/' + filename,
         ...(blurhashData && {
@@ -117,15 +134,30 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
         ...(exifData && {
           exif: exifData.exif,
         })
-      };
-      return acc;
-    }, {} as Record<string, Picture & ImageWithBlurhash & ExifMetadata>);
+      }] as [string, Picture & ImageWithBlurhash & ExifMetadata];
+    }).sort(([, a], [, b]) => a.filename.localeCompare(b.filename));
+
+  if (meta.overrideOrder) {
+    for (const [fst, snd] of meta.overrideOrder) {
+      const fst_ = fst.replace('.jpg', '');
+      const snd_ = snd.replace('.jpg', '');
+      const fstIdx = thumbnailsArr.findIndex(([k]) => k === fst_);
+      const sndIdx = thumbnailsArr.findIndex(([k]) => k === snd_);
+      if (fstIdx !== -1 && sndIdx !== -1 && fstIdx !== sndIdx - 1) {
+        // Remove fst from its current position
+        const [fstItem] = thumbnailsArr.splice(fstIdx, 1);
+        // Insert fst just before snd
+        const insertIdx = sndIdx > fstIdx ? sndIdx - 1 : sndIdx;
+        thumbnailsArr.splice(insertIdx, 0, fstItem);
+      }
+    }
+  }
 
   return {
     id,
     meta,
-    images,
-    thumbnails
+    images: imagesArr,
+    thumbnails: thumbnailsArr
   };
 }).sort((a, b) => {
   const dateA = new Date(a.meta.year, a.meta.month - 1, a.meta.day);
@@ -147,5 +179,5 @@ export function getGalleryGroups(): GalleryGroup[] {
     groupsMap.get(key)!.items.push(item);
   }
   // Sort groups by date (newest first)
-  return Array.from(groupsMap.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+  return Array.from(groupsMap.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
 } 

@@ -1,5 +1,4 @@
 import { createSignal, createMemo, createEffect, For, batch, untrack, Accessor, onMount } from "solid-js";
-import justifiedLayout from "justified-layout";
 import { createElementSize } from "@solid-primitives/resize-observer";
 import { createIntersectionObserver } from "@solid-primitives/intersection-observer";
 import { Layout, positionLike } from "~/lib/gallery/types";
@@ -12,9 +11,11 @@ import { useGalleryAnimation } from "~/lib/gallery/useGalleryAnimation";
 import { createStore, reconcile } from "solid-js/store";
 import { Picture } from "vite-imagetools";
 import { TransitionGroup } from "solid-transition-group";
-import { Dynamic } from "solid-js/web";
-import { createMediaQuery } from "@solid-primitives/media";
+import { Dynamic, isServer } from "solid-js/web";
+import { createBreakpoints, createMediaQuery } from "@solid-primitives/media";
 import { createLocale } from "~/lib/gallery/createLocale";
+import { myLayout } from "~/lib/gallery/layout";
+import { DEFAULT_BREAKPOINTS } from "~/lib/gallery/breakpoints";
 
 interface GalleryGroupProps {
   group: GalleryGroupType;
@@ -34,6 +35,7 @@ const galleryReducer = (
   containerRef: Accessor<HTMLDivElement | undefined>,
   images: (Picture & ImageWithBlurhash & ExifMetadata)[],
   featuredSet: Set<string>,
+  doubleRowSet: Accessor<Set<string>>,
 ): [GalleryReducerOutput, GalleryReducerAction] => {
   const containerSize = createElementSize(containerRef);
   const width = () => containerSize.width || 800;
@@ -43,21 +45,22 @@ const galleryReducer = (
   const initialDisplayImages = sortImagesByFeatured(images, featuredSet);
   const [displayImages, setDisplayImages] = createStore(initialDisplayImages.map(img => ({ ...img })));
 
-  const layout_ = (isExpanded: boolean, images: (Picture & ImageWithBlurhash & ExifMetadata)[]) => {
+  const layout_ = (isExpanded: boolean, images: (Picture & ImageWithBlurhash & ExifMetadata)[], doubleRowSet: Set<string>) => {
     const aspectRatios = images.map((img) => img.img.w / img.img.h);
 
     const options = {
-      containerWidth: width(),
+      containerWidth: width() ?? 800,
       targetRowHeight: 220,
       boxSpacing: 4,
-      maxNumRows: isExpanded ? undefined : 3,
+      maxNumRows: isExpanded ? 9999 : 3,
+      doubleRowImagesIdx: Array.from(doubleRowSet).map(img => images.findIndex(i => i.filename === img)),
     };
 
-    return justifiedLayout(aspectRatios, options);
+    return myLayout(aspectRatios, options);
   };
 
   // NOTE intentionally not reactive.
-  const initialLayout = layout_(false, initialDisplayImages);
+  const initialLayout = layout_(false, initialDisplayImages, doubleRowSet());
   const initialVisibleImages = initialDisplayImages.slice(0, initialLayout.boxes.length)
 
   const [visibleImages, setVisibleImages] = createStore<(Picture & ImageWithBlurhash & ExifMetadata)[]>(initialVisibleImages);
@@ -71,7 +74,7 @@ const galleryReducer = (
         return;
       }
 
-      const newLayout = layout_(isExpanded(), displayImages);
+      const newLayout = layout_(isExpanded(), displayImages, doubleRowSet());
       setVisibleImages(reconcile(displayImages.slice(0, newLayout.boxes.length), { key: "filename", merge: true }));
       setLayout(newLayout);
     })
@@ -81,7 +84,7 @@ const galleryReducer = (
     batch(() => {
       setIsExpanded(isExpanded);
       const newDisplayImages = reconcile(isExpanded ? images : sortImagesByFeatured(images, featuredSet), { key: "filename", merge: true })(displayImages);
-      const newLayout = layout_(isExpanded, newDisplayImages);
+      const newLayout = layout_(isExpanded, newDisplayImages, doubleRowSet());
       setDisplayImages(newDisplayImages);
       setVisibleImages(reconcile(newDisplayImages.slice(0, newLayout.boxes.length), { key: "filename", merge: true }));
       setLayout(newLayout);
@@ -104,20 +107,27 @@ const galleryReducer = (
 export function GalleryGroup(props: GalleryGroupProps) {
   const group = untrack(() => props.group);
   const [isSticky, setIsSticky] = createSignal(false);
+
   const prefersReducedMotion = createMediaQuery("(prefers-reduced-motion: reduce)");
   const locale = createLocale();
+  const breakpoints = createBreakpoints(DEFAULT_BREAKPOINTS);
 
   // Refs
   let containerRef: HTMLDivElement | undefined;
   let sentinelRef: HTMLDivElement | undefined;
 
-  const images = group.items.flatMap(item => Object.values(item.thumbnails));
+  const images = group.items.flatMap(item => item.thumbnails.map(([, img]) => img));
   const allFeatured = group.items.flatMap(item =>
     (item.meta.featured ?? []).map((f: string) => item.id + '/' + f.replace(/\.jpg$/i, ""))
   );
   const featuredSet = new Set(allFeatured);
+  const doubleRowSet_ = new Set(group.items.flatMap(item =>
+    (item.meta.doubleRow ?? []).map((f: string) => item.id + '/' + f.replace(/\.jpg$/i, ""))
+  ));
 
-  const [{ isExpanded, visibleImages, layout }, { setIsExpanded }] = galleryReducer(() => containerRef, images, featuredSet);
+  const doubleRowSet = () => breakpoints.md ? doubleRowSet_ : new Set() as Set<string>;
+
+  const [{ isExpanded, visibleImages, layout }, { setIsExpanded }] = galleryReducer(() => containerRef, images, featuredSet, doubleRowSet);
 
   const layoutMap = createMemo(() => new Map(layout.boxes.map((box, i) => [visibleImages[i].filename, box])), new Map());
 

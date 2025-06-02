@@ -110,7 +110,7 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
         <div class={`absolute inset-0 rounded-xs pointer-events-none opacity-0 group-hover:opacity-100 ${tap.overlayActive() ? '!opacity-100' : ''} motion-safe:transition-opacity motion-safe:duration-200 motion-reduce:transition-none bg-gradient-to-t from-black/90 via-black/10 via-50% to-black/0 to-100%`}></div>
         {/* Metadata overlay as sibling */}
         <div class="absolute inset-0 flex flex-col justify-end rounded-xs pointer-events-none">
-          <div class="relative z-10 p-1 text-white text-sm">
+          <div class="relative z-10 p-2 text-white text-sm">
             <Show when={dateTimeLabel()}>{(label) => (
               <div class={`inline-flex items-center gap-1 text-white whitespace-nowrap px-3 py-1 text-xs font-mono opacity-0 group-hover:opacity-100 ${tap.overlayActive() ? '!opacity-100' : ''} motion-safe:transition-opacity motion-safe:duration-200 motion-reduce:transition-none border-b border-white/50 pb-0.5`}>
                 {label()}
