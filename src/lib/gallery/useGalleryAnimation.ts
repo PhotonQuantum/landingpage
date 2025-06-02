@@ -25,7 +25,6 @@ export function useGalleryAnimation() {
       return;
     }
 
-    let counter = 0;
     elements.forEach((el) => {
       const key = el.getAttribute('data-key');
       if (key) {
@@ -37,11 +36,10 @@ export function useGalleryAnimation() {
           const deltaY = prevPos.top - currentPos.top;
 
           // Force a reflow.
-          identity((el as HTMLElement).offsetHeight);
+          (el as HTMLElement).style.zIndex = '30';
 
           if (deltaX !== 0 || deltaY !== 0) {
-            counter++;
-            el.animate(
+            const animation = el.animate(
               [
                 { transform: `translate(${deltaX}px, ${deltaY}px)` },
                 { transform: 'translate(0px, 0px)' }
@@ -51,6 +49,9 @@ export function useGalleryAnimation() {
                 easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
               }
             );
+            animation.onfinish = () => {
+              (el as HTMLElement).style.zIndex = 'auto';
+            };
           }
         }
       }
