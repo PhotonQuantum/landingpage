@@ -49,7 +49,7 @@ const galleryReducer = (
     const options = {
       containerWidth: width(),
       targetRowHeight: 220,
-      boxSpacing: 8,
+      boxSpacing: 4,
       maxNumRows: isExpanded ? undefined : 3,
     };
 
@@ -189,7 +189,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
 
   return (
     <div>
-      <div ref={el => sentinelRef = el} class="h-0 scroll-mt-16" />
+      <div ref={el => sentinelRef = el} class="h-0 scroll-mt-18" />
       <GalleryHeader
         label={`${group.location} \u00B7 ${getMonthName(group.date.getMonth(), locale())} ${group.date.getFullYear()}`}
         isExpanded={isExpanded}
@@ -199,20 +199,22 @@ export function GalleryGroup(props: GalleryGroupProps) {
         isSticky={isSticky}
         onHeaderClick={handleHeaderClick}
       />
-      <div
-        ref={el => containerRef = el}
-        class={layoutMode() === 'justified' ? 'relative w-full' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2'}
-        style={layoutMode() === 'justified' ? { height: `${layout.containerHeight}px` } : {}}
-      >
-        <Dynamic component={prefersReducedMotion() ? "div" : TransitionGroup} name="fade">
-          <For each={visibleImages}>{(image, i) => (
-            <GalleryImage
-              image={image}
-              box={layoutMode() === 'justified' ? layout.boxes[i()] : positionLike(layout.boxes[i()])}
-              mode={layoutMode()}
-            />
-          )}</For>
-        </Dynamic>
+      <div class="p-2">
+        <div
+          ref={el => containerRef = el}
+          class={layoutMode() === 'justified' ? 'relative w-full' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2'}
+          style={layoutMode() === 'justified' ? { height: `${layout.containerHeight}px` } : {}}
+        >
+          <Dynamic component={prefersReducedMotion() ? "div" : TransitionGroup} name="fade">
+            <For each={visibleImages}>{(image, i) => (
+              <GalleryImage
+                image={image}
+                box={layoutMode() === 'justified' ? layout.boxes[i()] : positionLike(layout.boxes[i()])}
+                mode={layoutMode()}
+              />
+            )}</For>
+          </Dynamic>
+        </div>
       </div>
     </div>
   );

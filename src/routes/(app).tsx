@@ -33,7 +33,7 @@ export default function AppLayout(props: RouteSectionProps) {
     <div class="flex flex-col w-full">
       {/* Header with navigation */}
       <header ref={el => headerRef = el} class="border-b border-gray-200 dark:border-gray-800 bg-background-80 backdrop-blur-sm shadow-sm sticky top-0 z-90 w-full">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="container mx-auto px-4">
           <div class="flex items-center h-16 justify-between">
             {/* Left side - Name and Navigation */}
             <div class="flex items-center">
@@ -125,14 +125,14 @@ export default function AppLayout(props: RouteSectionProps) {
 
       {/* Main content area */}
       <main class="flex-1">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-2">
+        <div class="container mx-auto p-4">
           {props.children}
         </div>
       </main>
 
       {/* Footer */}
-      <footer class="mt-4">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <footer class="mt-2">
+        <div class="container mx-auto p-4">
           <div class="text-center text-xs md:text-sm text-label">
             © {import.meta.env.VITE_LAST_UPDATE_YEAR} Yanning Chen.
             Code available on <a class="text-accent inline-block" href="https://github.com/PhotonQuantum/landingpage">

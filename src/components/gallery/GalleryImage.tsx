@@ -72,7 +72,7 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
   return (
     <div
       ref={tap.setRef}
-      class={`gallery-item overflow-hidden rounded-lg cursor-pointer${mode() === 'justified' ? ' absolute' : ' relative aspect-[4/3]'}`}
+      class={`gallery-item overflow-hidden rounded-xs cursor-pointer${mode() === 'justified' ? ' absolute' : ' relative aspect-[4/3]'}`}
       data-key={image().filename}
       style={containerStyle()}
       {...tap.bind}
@@ -80,7 +80,7 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
       <div class={`relative w-full h-full group${tap.overlayActive() ? ' overlay-active' : ''}`}>
         {image().blurhashGradient && !isLoaded() && (
           <div
-            class="absolute inset-0 w-full h-full rounded-lg motion-safe:animate-pulse"
+            class="absolute inset-0 w-full h-full rounded-xs motion-safe:animate-pulse"
             style={{
               background: image().blurhashGradient
             }}
@@ -100,17 +100,17 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
             height={box().height}
             sizes={`${box().width}px`}
             alt={image().filename}
-            class="absolute inset-0 w-full h-full object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
+            class="absolute inset-0 w-full h-full object-cover rounded-xs transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
             decoding="async"
             onLoad={() => setIsLoaded(true)}
           />
         </picture>
         {/* Gradient overlay as sibling */}
-        <div class={`absolute inset-0 rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 ${tap.overlayActive() ? '!opacity-100' : ''} motion-safe:transition-opacity motion-safe:duration-200 motion-reduce:transition-none bg-gradient-to-t from-black/90 via-black/10 via-50% to-black/0 to-100%`}></div>
+        <div class={`absolute inset-0 rounded-xs pointer-events-none opacity-0 group-hover:opacity-100 ${tap.overlayActive() ? '!opacity-100' : ''} motion-safe:transition-opacity motion-safe:duration-200 motion-reduce:transition-none bg-gradient-to-t from-black/90 via-black/10 via-50% to-black/0 to-100%`}></div>
         {/* Metadata overlay as sibling */}
-        <div class="absolute inset-0 flex flex-col justify-end rounded-lg pointer-events-none">
-          <div class="relative z-10 p-3 text-white text-sm">
+        <div class="absolute inset-0 flex flex-col justify-end rounded-xs pointer-events-none">
+          <div class="relative z-10 p-1 text-white text-sm">
             <Show when={dateTimeLabel()}>{(label) => (
               <div class={`inline-flex items-center gap-1 text-white whitespace-nowrap px-3 py-1 text-xs font-mono opacity-0 group-hover:opacity-100 ${tap.overlayActive() ? '!opacity-100' : ''} motion-safe:transition-opacity motion-safe:duration-200 motion-reduce:transition-none border-b border-white/50 pb-0.5`}>
                 {label()}

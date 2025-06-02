@@ -26,12 +26,12 @@ export const GalleryHeader: Component<GalleryHeaderProps> = (props) => {
 
     return (
         <div
-            class={`sticky top-16 z-30 flex items-center justify-between p-2 motion-safe:transition-all motion-safe:duration-200 ${local.isSticky() ? 'bg-background-60 backdrop-blur-sm' : ''
+            class={`sticky top-16 z-30 flex items-center justify-between px-2 py-1 motion-safe:transition-all motion-safe:duration-200 ${local.isSticky() ? 'bg-background-60 backdrop-blur-sm' : ''
                 }`}
         >
             <div class="flex items-center gap-3">
                 <h2
-                    class="text-xl font-medium text-label cursor-pointer hover:text-ctp-text motion-safe:transition-colors"
+                    class="text-lg font-medium text-label cursor-pointer hover:text-ctp-text motion-safe:transition-colors"
                     onClick={local.onHeaderClick}
                 >
                     {local.label}
