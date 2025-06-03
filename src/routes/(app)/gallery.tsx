@@ -1,15 +1,25 @@
-import { RouteSectionProps } from "@solidjs/router";
+import { RouteSectionProps, useNavigate } from "@solidjs/router";
 import { getGalleryGroups } from "~/data/galleryData";
-import { For } from "solid-js";
+import { For, Suspense } from "solid-js";
 import { GalleryGroup } from "~/components/GalleryGroup";
+import { GalleryGroupsContext } from "~/context/gallery";
 
 export default function Gallery(props: RouteSectionProps) {
     const galleryGroups = getGalleryGroups();
+    const navigate = useNavigate();
+
     return (
-        <div class="flex flex-col">
-            <For each={galleryGroups}>{group =>
-                <GalleryGroup group={group} />
-            }</For>
-        </div>
+        <GalleryGroupsContext.Provider value={galleryGroups}>
+            <div class="flex flex-col">
+                <For each={galleryGroups}>{group =>
+                    <GalleryGroup group={group} onNavigate={(filename) => {
+                        navigate(`${filename}`, { scroll: false, state: { fromGallery: true } });
+                    }} />
+                }</For>
+                <Suspense>
+                    {props.children}
+                </Suspense>
+            </div>
+        </GalleryGroupsContext.Provider>
     );
 }

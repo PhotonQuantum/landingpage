@@ -19,6 +19,7 @@ interface GalleryImageProps {
   image: Picture & ImageWithBlurhash & ExifMetadata;
   box: LayoutBox;
   mode: 'grid' | 'justified';
+  onClick: () => void;
 }
 
 export const GalleryImage: Component<GalleryImageProps> = (props) => {
@@ -29,7 +30,7 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
   const [isLoaded, setIsLoaded] = createSignal(false);
   const tap = useTapOrClick({
     onTap: () => {
-      // TODO
+      props.onClick();
     },
     tapTimeout: 3000,
     closeOnOutside: true,

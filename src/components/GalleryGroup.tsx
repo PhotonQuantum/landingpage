@@ -11,7 +11,7 @@ import { useGalleryAnimation } from "~/lib/gallery/useGalleryAnimation";
 import { createStore, reconcile } from "solid-js/store";
 import { Picture } from "vite-imagetools";
 import { TransitionGroup } from "solid-transition-group";
-import { Dynamic, isServer } from "solid-js/web";
+import { Dynamic } from "solid-js/web";
 import { createBreakpoints, createMediaQuery } from "@solid-primitives/media";
 import { createLocale } from "~/lib/gallery/createLocale";
 import { myLayout } from "~/lib/gallery/layout";
@@ -19,6 +19,7 @@ import { DEFAULT_BREAKPOINTS } from "~/lib/gallery/breakpoints";
 
 interface GalleryGroupProps {
   group: GalleryGroupType;
+  onNavigate: (filename: string) => void;
 }
 
 interface GalleryReducerOutput {
@@ -221,6 +222,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
                 image={image}
                 box={layoutMode() === 'justified' ? layout.boxes[i()] : positionLike(layout.boxes[i()])}
                 mode={layoutMode()}
+                onClick={() => props.onNavigate(image.filename)}
               />
             )}</For>
           </Dynamic>

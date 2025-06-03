@@ -207,6 +207,78 @@ async function asyncPool<T, R>(poolLimit: number, array: T[], iteratorFn: (item:
   return Promise.all(ret);
 }
 
+// --- Utility: Get max value for a directive from config ---
+function getMaxDirective(cfg: Record<string, any>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    if (cfg[key] !== undefined) {
+      if (Array.isArray(cfg[key])) {
+        const nums = cfg[key].map(Number).filter(n => !isNaN(n));
+        if (nums.length > 0) return Math.max(...nums);
+      } else {
+        const n = Number(cfg[key]);
+        if (!isNaN(n)) return n;
+      }
+    }
+  }
+  return undefined;
+}
+
+// --- Utility: Check if directives is an orientation record ---
+function isOrientationDirectives(directives: any): boolean {
+  return (
+    directives &&
+    typeof directives === 'object' &&
+    ('landscape' in directives || 'portrait' in directives)
+  );
+}
+
+// --- Utility: Extract directives for image orientation ---
+function extractDirectivesForOrientation(origWidth: number | undefined, origHeight: number | undefined, directives: any): any {
+  if (!isOrientationDirectives(directives)) return directives;
+  if (origWidth !== undefined && origHeight !== undefined) {
+    if (origWidth >= origHeight && 'landscape' in directives) {
+      return directives['landscape'];
+    } else if (origHeight > origWidth && 'portrait' in directives) {
+      return directives['portrait'];
+    } else {
+      // fallback: if only one is present, use it
+      return directives['landscape'] || directives['portrait'];
+    }
+  } else {
+    // fallback: if can't determine, use landscape if present
+    return directives['landscape'] || directives['portrait'];
+  }
+}
+
+// --- Utility: Check and skip 'auto' w/h configs if already processed ---
+function shouldSkipAutoConfig(cfg: any, origWidth: number | undefined, origHeight: number | undefined, processedConfigHashes: Set<string>, relFile: string): boolean {
+  let isAutoW = false, isAutoH = false;
+  let autoSubCfg = { ...cfg };
+  if (cfg.w !== undefined) {
+    if ((Array.isArray(cfg.w) && cfg.w.includes('auto')) || cfg.w === 'auto') {
+      isAutoW = true;
+      autoSubCfg = { ...autoSubCfg, w: Array.isArray(cfg.w) ? cfg.w.map((v: any) => v === 'auto' ? String(origWidth) : v) : String(origWidth) };
+    }
+  }
+  if (cfg.h !== undefined) {
+    if ((Array.isArray(cfg.h) && cfg.h.includes('auto')) || cfg.h === 'auto') {
+      isAutoH = true;
+      autoSubCfg = { ...autoSubCfg, h: Array.isArray(cfg.h) ? cfg.h.map((v: any) => v === 'auto' ? String(origHeight) : v) : String(origHeight) };
+    }
+  }
+  const configHash = JSON.stringify({ ...autoSubCfg, w: autoSubCfg.w, h: autoSubCfg.h });
+  if ((isAutoW || isAutoH) && processedConfigHashes.has(configHash)) {
+    prettyWarn(`[SKIP] ${relFile}: auto w/h config already processed with original dimension`, 6);
+    return true;
+  }
+  // Mark this config as processed
+  processedConfigHashes.add(JSON.stringify({ ...cfg, w: cfg.w, h: cfg.h }));
+  if (isAutoW || isAutoH) {
+    processedConfigHashes.add(configHash);
+  }
+  return false;
+}
+
 // --- Main script logic ---
 (async () => {
   // 1. Load image.config.json
@@ -245,20 +317,41 @@ async function asyncPool<T, R>(poolLimit: number, array: T[], iteratorFn: (item:
     let jsonOutput: Record<string, any> = {};
 
     // 2c. Process each file (concurrently, with max concurrency)
+    // Track processed configs for this image
+    const processedConfigHashes = new Set<string>();
     await asyncPool(maxConcurrency, files, async (file) => {
       // Report the filename currently being processed
       const relFile = "/" + path.relative(process.cwd(), file);
       prettyProcessing(`${relFile}`, 4);
-      // Normalize directives to entries for resolveConfigs
-      const entries = normalizeDirectives(directives);
-      // Get all config combinations for this file
-      const resolvedConfigs = resolveConfigs(entries, builtinOutputFormats);
       // Load image with sharp
       const image = sharp(file);
+      const meta = await image.metadata();
+      const origWidth = meta.width;
+      const origHeight = meta.height;
+
+      // Select directives based on orientation if needed
+      const usedDirectives = extractDirectivesForOrientation(origWidth, origHeight, directives);
+
+      // Normalize directives to entries for resolveConfigs
+      const entries = normalizeDirectives(usedDirectives);
+      // Get all config combinations for this file
+      const resolvedConfigs = resolveConfigs(entries, builtinOutputFormats);
       // Compute Image ID
       const imageHash = hash([await image.clone().toBuffer()]);
       let outputMetadatas: any[] = [];
       for (const cfg of resolvedConfigs) {
+        // --- AUTO w/h SKIP LOGIC ---
+        if (shouldSkipAutoConfig(cfg, origWidth, origHeight, processedConfigHashes, relFile)) {
+          continue;
+        }
+        // Check for width/height in this cfg
+        const maxW = getMaxDirective(cfg, ['w', 'width']);
+        const maxH = getMaxDirective(cfg, ['h', 'height']);
+        if ((maxW !== undefined && origWidth !== undefined && maxW > origWidth) ||
+            (maxH !== undefined && origHeight !== undefined && maxH > origHeight)) {
+          prettyWarn(`[SKIP] ${relFile}: cfg width (${maxW ?? '-'})/height (${maxH ?? '-'}) exceeds original (${origWidth}x${origHeight})`, 6);
+          continue;
+        }
         const id = generateImageID(cfg, imageHash);
 
         // Check if file exists in cache

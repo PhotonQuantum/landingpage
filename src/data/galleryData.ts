@@ -32,6 +32,16 @@ interface BaseImageMetadata {
   filename: string;
 }
 
+export interface ViewerImageItem {
+  src: string;
+  width: number;
+  height: number;
+}
+
+export interface ViewerImage {
+  items: ViewerImageItem[];
+}
+
 export interface ImageWithBlurhash extends BaseImageMetadata {
   blurhash?: string;
   blurhashGradient?: string;
@@ -42,7 +52,7 @@ export interface ImageWithBlurhash extends BaseImageMetadata {
 export interface GalleryItem {
   id: string;
   meta: GalleryMeta;
-  images: [string, Picture & ImageWithBlurhash & ExifMetadata][];
+  images: [string, ViewerImage & ImageWithBlurhash & ExifMetadata][];
   thumbnails: [string, Picture & ImageWithBlurhash & ExifMetadata][];
 }
 
@@ -56,7 +66,7 @@ export type GalleryGroup = {
 // @ts-ignore
 const galleryMeta: Record<string, GalleryMeta> = import.meta.glob("~/assets/gallery/**/meta.json", { eager: true })
 
-const galleryImages = imagesJson as unknown as Record<string, Picture & BaseImageMetadata>;
+const galleryImages = imagesJson as unknown as Record<string, ViewerImageItem[]>;
 const galleryThumbnails = thumbnailsJson as unknown as Record<string, Picture & BaseImageMetadata>;
 const galleryBlurhash = blurhashJson as unknown as Record<string, { blurhash: BlurhashMetadata }>;
 const galleryExif = exifJson as unknown as Record<string, ExifMetadata>;
@@ -79,7 +89,7 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
         }
       }
       return [filename, {
-        ...picture,
+        items: picture,
         filename: id + '/' + filename,
         ...(blurhashData && {
           blurhash: blurhashData.blurhash,
@@ -90,7 +100,7 @@ const galleryItems: GalleryItem[] = Object.entries(galleryMeta).map(([path, meta
         ...(exifData && {
           exif: exifData.exif,
         })
-      }] as [string, Picture & ImageWithBlurhash & ExifMetadata];
+      }] as [string, ViewerImage & ImageWithBlurhash & ExifMetadata];
     }).sort(([, a], [, b]) => a.filename.localeCompare(b.filename));
 
   if (meta.overrideOrder) {
