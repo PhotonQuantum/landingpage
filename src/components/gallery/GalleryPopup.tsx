@@ -347,20 +347,19 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   });
 
   return (
-    <div class="fixed inset-0 z-100 flex flex-row bg-black/80">
+    <div class="fixed inset-0 z-100 flex flex-row bg-black">
+      <div class="absolute w-full h-full -z-10" style={{ "background": currentImage()?.blurhashGradient }}></div>
       {/* Main image area */}
       <div class="flex-1 flex flex-col justify-center items-center relative">
         {/* Tooltip */}
-        <Show when={showTooltip()}>
-          <div
-            class="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/90 text-white text-sm px-4 py-2 rounded shadow-lg border border-white/10 z-50 cursor-pointer animate-fade-in"
-            style={{ "pointer-events": "auto" }}
-            onClick={() => setShowTooltip(false)}
-          >
-            Tip: Use <span class="font-bold">←/→</span> to switch images. Trackpad horizontal scroll is not always reliable.
-          </div>
-        </Show>
-        <div class="grow w-full flex justify-center items-center overflow-hidden" ref={setContainerRef}>
+        <div
+          class={`absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/90 text-white text-sm px-4 py-2 rounded shadow-lg border border-white/10 z-50 cursor-pointer motion-safe:transition-opacity ${showTooltip() ? "opacity-100" : "opacity-0"}`}
+          style={{ "pointer-events": "auto" }}
+          onClick={() => setShowTooltip(false)}
+        >
+          Tip: Use <span class="font-bold">←/→</span> to switch images. Trackpad horizontal scroll is not always reliable.
+        </div>
+        <div class="relative grow w-full flex justify-center items-center overflow-hidden" ref={setContainerRef}>
           <img
             ref={setImgRef}
             src={currentImageItems()[currentImageItems().length - 1]?.src || ""}
@@ -368,14 +367,15 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
             height={currentImageItems()[currentImageItems().length - 1]?.height || 0}
             alt="main"
             draggable={false}
-            class={`${imgAspectRatio() > containerAspectRatio() ? "w-full h-auto" : "h-full w-auto"} rounded shadow-lg object-contain bg-black touch-none select-none`}
+            class={`${imgAspectRatio() > containerAspectRatio() ? "w-full h-auto" : "h-full w-auto"} bg-no-repeat bg-center bg-cover touch-none select-none`}
             style={{
               "transform": `translate(${gestureManager.state().x}px, ${gestureManager.state().y}px) scale(${gestureManager.state().scale})`,
               "transition": "transform 0.2s cubic-bezier(.4,2,.6,1)",// TODO js based spring transition, and motion-safe
+              "background-image": currentImageItems()[0]?.src ? `url(${currentImageItems()[0]?.src})` : undefined,
             }}
           />
           {/* Left navigation */}
-          <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${gestureManager.state().hovering ? "opacity-100" : "opacity-0"}`} onClick={props.onPrev}>
+          <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition-opacity z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${gestureManager.state().hovering ? "opacity-100" : "opacity-0"}`} onClick={props.onPrev}>
             <SvgChevronLeft class="w-6 h-6" />
           </button>
           {/* Right navigation */}
@@ -384,7 +384,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
           </button>
         </div>
         {/* Bottom thumbnail strip */}
-        <div class="w-full flex flex-row justify-center gap-2 bg-black/60 rounded p-2">
+        <div class="w-full flex flex-row justify-center gap-2 bg-black/70 backdrop-blur-3xl p-2">
           <For each={thumbnailPointers()}>{(thumbPointer) => {
             const img = galleryGroups && thumbPointer
               ? galleryGroups[thumbPointer.groupIndex].items[thumbPointer.itemIndex].images[thumbPointer.imageIndex][1]
@@ -393,7 +393,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
               <img
                 src={img?.items?.[0]?.src || ""}
                 alt={`thumb`}
-                class={`h-16 w-16 object-cover rounded cursor-pointer border-2 ${JSON.stringify(thumbPointer) === JSON.stringify(props.pointer) ? 'border-accent' : 'border-transparent'}`}
+                class={`h-16 w-16 object-cover rounded-xl cursor-pointer border-2 ${JSON.stringify(thumbPointer) === JSON.stringify(props.pointer) ? 'border-accent' : 'border-transparent'}`}
                 onClick={() => props.onSelect(thumbPointer)}
               />
             );
@@ -402,7 +402,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
       </div>
 
       {/* Right info panel */}
-      <div class="w-[340px] bg-gradient-to-l from-black/80 to-black/30 text-white p-6 overflow-y-auto flex flex-col">
+      <div class="w-[340px] bg-black/50 text-white p-6 overflow-y-auto backdrop-blur-3xl flex flex-col">
         <button class="self-end mb-2 text-white/70 hover:text-white" onClick={props.onClose}>
           <span class="text-2xl">&#10005;</span>
         </button>
