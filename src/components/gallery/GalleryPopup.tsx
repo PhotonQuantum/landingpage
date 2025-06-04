@@ -3,6 +3,7 @@ import { useContext, createMemo, Component, For, createSignal, createEffect, onC
 import { GalleryGroupsContext } from "~/context/gallery";
 import { GalleryGroup } from "~/data/galleryData";
 import { ImagePointer, prevPointer, nextPointer } from "~/lib/gallery/pointer";
+import {enableBodyScroll, disableBodyScroll} from "body-scroll-lock";
 
 export interface GalleryPopupProps {
   pointer: ImagePointer | undefined;
@@ -104,9 +105,15 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
     x: 0,
     y: 0,
   });
+  // NOTE the whole block wheel approach does not work well.
+  // Alternative solution:
+  // 1. Filtered wheel event for scale = 1, only process swipe events.
+  // 2. No special handling for scale > 1.
+  // 3. Reliable bound calculation. Manual rubberbanding if needed.
+  const [blockWheel, setBlockWheel] = createSignal(false);
   createGestureHandler({
     ref: props.ref,
-    actions: [dragAction, pinchAction, hoverAction],
+    actions: [dragAction, pinchAction, hoverAction, wheelAction],
     handlers: () => {
       const container = props.containerRef();
       const target = props.ref();
@@ -125,7 +132,7 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
         },
         onDragEnd: () => {
           setState((prev) => {
-            const swipe = panSwipeIntention(container!, target!, prev.x, prev.y);
+            const swipe = panSwipeIntention(target!, prev.x, prev.y);
             if (untrack(state).scale <= 1 && swipe) {
               props.onSwipe(swipe);
             }
@@ -165,6 +172,49 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
             }
           });
         },
+        onWheel: ({ first, last, movement: [x, y], memo }) => {
+          if (untrack(blockWheel)) {
+            return;
+          }
+
+          setState((prev) => {
+            if (first) {
+              memo = [prev.x, prev.y]
+            }
+
+            const swipe = panSwipeIntention(target!, prev.x, prev.y);
+            if (swipe) {
+              setBlockWheel(true);
+              props.onSwipe(swipe);
+            }
+
+            return {
+              ...prev,
+              x: memo[0] - x,
+              y: prev.scale > 1 ? memo[1] - y : 0,
+            }
+          });
+          return memo;
+          // TODO: Implement wheel based zoom and swipe
+        },
+        onWheelEnd: () => {
+          setBlockWheel(false);
+          const bounds = calcPanBounds(container!, target!);
+          setState((prev) => ({
+            ...prev,
+            x: Math.max(bounds.left, Math.min(bounds.right, prev.x)),
+            y: Math.max(bounds.top, Math.min(bounds.bottom, prev.y)),
+          }));
+        },
+        onHover: ({ hovering }) => {
+          if (hovering) {
+            document.documentElement.style.overscrollBehaviorX = "none";
+            disableBodyScroll(document.body);
+          } else {
+            document.documentElement.style.overscrollBehaviorX = "auto";
+            enableBodyScroll(document.body);
+          }
+        },
       });
     },
     config: () => {
@@ -190,6 +240,7 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
         },
         pinch: { scaleBounds: { min: 1, max: 5 }, rubberband: true },
         scroll: { preventDefault: true },
+        wheel: { preventDefault: true },
       }
     },
   });
@@ -199,9 +250,8 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
   };
 }
 
-const panSwipeIntention = (container: HTMLElement, target: HTMLElement, x: number, y: number) => {
+const panSwipeIntention = (target: HTMLElement, x: number, y: number) => {
   const { width: tWidth } = target.getBoundingClientRect();
-  console.log("pan swipe intention", "x", x, "threshold (right)", tWidth / 2, "threshold (left)", -tWidth / 2);
   if (x > tWidth / 2) {
     return "right";
   } else if (x < -tWidth / 2) {

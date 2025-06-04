@@ -20,6 +20,9 @@ importers:
       '@use-gesture/vanilla':
         specifier: ^10.3.1
         version: 10.3.1
+      body-scroll-lock:
+        specifier: 4.0.0-beta.0
+        version: 4.0.0-beta.0
       justified-layout:
         specifier: ^4.1.0
         version: 4.1.0
@@ -75,6 +78,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.8
         version: 4.1.8(vite@6.3.5(@types/node@22.15.27)(jiti@2.4.2)(lightningcss@1.30.1)(sass@1.89.0)(terser@5.40.0)(yaml@2.8.0))
+      '@types/body-scroll-lock':
+        specifier: ^3.1.2
+        version: 3.1.2
       '@types/justified-layout':
         specifier: ^4.1.4
         version: 4.1.4
@@ -1969,6 +1975,9 @@ packages:
   '@types/babel__traverse@7.20.7':
     resolution: {integrity: sha512-dkO5fhS7+/oos4ciWxyEyjWe48zmG6wbCheo/G2ZnHx4fs3EU6YC6UM8rk56gAjNJ9P3MTH2jo5jb92/K6wbng==}
 
+  '@types/body-scroll-lock@3.1.2':
+    resolution: {integrity: sha512-ELhtuphE/YbhEcpBf/rIV9Tl3/O0A0gpCVD+oYFSS8bWstHFJUgA4nNw1ZakVlRC38XaQEIsBogUZKWIPBvpfQ==}
+
   '@types/braces@3.0.5':
     resolution: {integrity: sha512-SQFof9H+LXeWNz8wDe7oN5zu7ket0qwMu5vZubW4GCJ8Kkeh6nBWUz87+KTz/G3Kqsrp0j/W253XJb3KMEeg3w==}
 
@@ -2246,6 +2255,9 @@ packages:
 
   blurhash@2.0.5:
     resolution: {integrity: sha512-cRygWd7kGBQO3VEhPiTgq4Wc43ctsM+o46urrmPOiuAe+07fzlSB9OJVdpgDL0jPqXUVQ9ht7aq7kxOeJHRK+w==}
+
+  body-scroll-lock@4.0.0-beta.0:
+    resolution: {integrity: sha512-a7tP5+0Mw3YlUJcGAKUqIBkYYGlYxk2fnCasq/FUph1hadxlTRjF+gAcZksxANnaMnALjxEddmSi/H3OR8ugcQ==}
 
   boolbase@1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
@@ -7110,6 +7122,8 @@ snapshots:
     dependencies:
       '@babel/types': 7.27.3
 
+  '@types/body-scroll-lock@3.1.2': {}
+
   '@types/braces@3.0.5': {}
 
   '@types/debug@4.1.12':
@@ -7466,6 +7480,8 @@ snapshots:
   blob-to-buffer@1.2.9: {}
 
   blurhash@2.0.5: {}
+
+  body-scroll-lock@4.0.0-beta.0: {}
 
   boolbase@1.0.0: {}
 
