@@ -1,9 +1,14 @@
 import { Action, createGesture, dragAction, Gesture, GestureHandlers, hoverAction, pinchAction, scrollAction, UserGestureConfig, wheelAction } from "@use-gesture/vanilla";
-import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, Accessor, untrack, onMount } from "solid-js";
+import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, Accessor, untrack, onMount, Show } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
 import { GalleryGroup } from "~/data/galleryData";
 import { ImagePointer, prevPointer, nextPointer } from "~/lib/gallery/pointer";
-import {enableBodyScroll, disableBodyScroll} from "body-scroll-lock";
+import { enableBodyScroll, disableBodyScroll } from "body-scroll-lock";
+import { createElementSize } from "@solid-primitives/resize-observer";
+
+import SvgChevronLeft from "@tabler/icons/outline/chevron-left.svg";
+import SvgChevronRight from "@tabler/icons/outline/chevron-right.svg";
+import { makeTimer } from "@solid-primitives/timer";
 
 export interface GalleryPopupProps {
   pointer: ImagePointer | undefined;
@@ -83,15 +88,18 @@ const createGestureHandler = (prop: GestureInput) => {
 }
 
 interface GestureManagerProps {
-  ref: Accessor<EventTarget & HTMLElement | undefined>;
-  containerRef: Accessor<EventTarget & HTMLElement | undefined>;
+  ref: Accessor<HTMLElement | undefined>;
+  containerRef: Accessor<HTMLElement | undefined>;
+  areaRef: Accessor<EventTarget | undefined>;
   onSwipe: (direction: "left" | "right") => void;
+  onTrackpadUnreliable?: () => void;
 }
 
 interface GestureManagerState {
   scale: number;
   x: number;
   y: number;
+  hovering: boolean;
 }
 
 interface GestureManagerOutput {
@@ -99,11 +107,24 @@ interface GestureManagerOutput {
   setState: (state: Partial<GestureManagerState>) => void;
 }
 
+interface WheelMemo {
+  skip: boolean;
+  origin: [number, number];
+}
+
+const initWheelMemo = (origin: [number, number]) => {
+  return {
+    skip: false,
+    origin: origin,
+  }
+}
+
 const createGestureManager = (props: GestureManagerProps): GestureManagerOutput => {
   const [state, setState] = createSignal<GestureManagerState>({
     scale: 1,
     x: 0,
     y: 0,
+    hovering: false,
   });
   // NOTE the whole block wheel approach does not work well.
   // Alternative solution:
@@ -111,7 +132,7 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
   // 2. No special handling for scale > 1.
   // 3. Reliable bound calculation. Manual rubberbanding if needed.
   createGestureHandler({
-    ref: props.ref,
+    ref: props.areaRef,
     actions: [dragAction, pinchAction, hoverAction, wheelAction],
     handlers: () => {
       const container = props.containerRef();
@@ -171,21 +192,28 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
             }
           });
         },
-        onWheel: ({ first, movement: [x, y], memo }) => {
+        onWheel: ({ first, last, pinching, velocity: [v], movement: [x, y], memo: memo_ }) => {
+          let memo: WheelMemo = memo_;
           setState((prev) => {
-            if (prev.scale <= 1) {
-              // TODO add a tooltip telling users to use control to switch images
-              return prev;
-            }
+            if (first) memo = initWheelMemo([prev.x, prev.y]);
+            if (pinching || memo.skip) return prev;
 
-            if (first) {
-              memo = [prev.x, prev.y]
+            if (prev.scale <= 1 && !last) {
+              if (Math.abs(x) > 50 && Math.abs(v) > 2) {
+                // Intentional swipe
+                const direction = x > 0 ? "left" : "right";
+                props.onSwipe(direction);
+                if (props.onTrackpadUnreliable) props.onTrackpadUnreliable();
+                memo.skip = true; // Prevent further wheel events
+                return prev;
+              }
+              return prev;
             }
 
             return {
               ...prev,
-              x: memo[0] - x,
-              y: memo[1] - y,
+              x: memo.origin[0] - x,
+              y: memo.origin[1] - y,
             }
           });
           return memo;
@@ -199,6 +227,10 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
           }));
         },
         onHover: ({ hovering }) => {
+          setState((prev) => ({
+            ...prev,
+            hovering: hovering ?? false,
+          }));
           if (hovering) {
             document.documentElement.style.overscrollBehaviorX = "none";
             disableBodyScroll(document.body);
@@ -270,6 +302,11 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   const [imgRef, setImgRef] = createSignal<EventTarget & HTMLImageElement | undefined>(undefined);
   const [containerRef, setContainerRef] = createSignal<EventTarget & HTMLElement | undefined>(undefined);
 
+  const containerSize = createElementSize(containerRef);
+  const containerAspectRatio = createMemo(() => (containerSize.width ?? 1) / (containerSize.height ?? 1));
+
+  const [showTooltip, setShowTooltip] = createSignal(false);
+
   const currentImage = createMemo(() => {
     const p = props.pointer;
     if (!galleryGroups || !p) return undefined;
@@ -281,16 +318,24 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   // Use the extracted utility for thumbnail pointers
   const thumbnailPointers = createMemo(() => getAdjacentPointers(galleryGroups, props.pointer, 2));
 
+  // Helper to show tooltip for a few seconds
+  const triggerTooltip = () => {
+    setShowTooltip(true);
+    makeTimer(() => setShowTooltip(false), 4000, setTimeout);
+  };
+
   const gestureManager = createGestureManager({
     ref: imgRef,
     containerRef: containerRef,
+    areaRef: containerRef,
     onSwipe: (direction) => {
       if (direction === "left") props.onNext();
       else props.onPrev();
     },
+    onTrackpadUnreliable: triggerTooltip,
   });
 
-  const aspectRatio = createMemo(() => {
+  const imgAspectRatio = createMemo(() => {
     const img = currentImageItems()[currentImageItems().length - 1];
     if (!img) return 1;
     return img.width / img.height;
@@ -303,28 +348,43 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
 
   return (
     <div class="fixed inset-0 z-100 flex flex-row bg-black/80">
-      {/* Left navigation */}
-      <button class="w-12 flex items-center justify-center text-white/70 hover:text-white transition" onClick={props.onPrev}>
-        <span class="text-3xl">&#8592;</span>
-      </button>
-
       {/* Main image area */}
-      <div class="flex-1 flex flex-col justify-center items-center relative" ref={setContainerRef}>
-        <img
-          ref={setImgRef}
-          src={currentImageItems()[currentImageItems().length - 1]?.src || ""}
-          width={currentImageItems()[currentImageItems().length - 1]?.width || 0}
-          height={currentImageItems()[currentImageItems().length - 1]?.height || 0}
-          alt="main"
-          draggable={false}
-          class={`${aspectRatio() > 1 ? "w-full h-auto" : "h-full w-auto"} rounded shadow-lg object-contain bg-black touch-none select-none`}
-          style={{
-            "transform": `translate(${gestureManager.state().x}px, ${gestureManager.state().y}px) scale(${gestureManager.state().scale})`,
-            "transition": "transform 0.2s cubic-bezier(.4,2,.6,1)"
-          }}
-        />
+      <div class="flex-1 flex flex-col justify-center items-center relative">
+        {/* Tooltip */}
+        <Show when={showTooltip()}>
+          <div
+            class="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/90 text-white text-sm px-4 py-2 rounded shadow-lg border border-white/10 z-50 cursor-pointer animate-fade-in"
+            style={{ "pointer-events": "auto" }}
+            onClick={() => setShowTooltip(false)}
+          >
+            Tip: Use <span class="font-bold">←/→</span> to switch images. Trackpad horizontal scroll is not always reliable.
+          </div>
+        </Show>
+        <div class="grow w-full flex justify-center items-center overflow-hidden" ref={setContainerRef}>
+          <img
+            ref={setImgRef}
+            src={currentImageItems()[currentImageItems().length - 1]?.src || ""}
+            width={currentImageItems()[currentImageItems().length - 1]?.width || 0}
+            height={currentImageItems()[currentImageItems().length - 1]?.height || 0}
+            alt="main"
+            draggable={false}
+            class={`${imgAspectRatio() > containerAspectRatio() ? "w-full h-auto" : "h-full w-auto"} rounded shadow-lg object-contain bg-black touch-none select-none`}
+            style={{
+              "transform": `translate(${gestureManager.state().x}px, ${gestureManager.state().y}px) scale(${gestureManager.state().scale})`,
+              "transition": "transform 0.2s cubic-bezier(.4,2,.6,1)",// TODO js based spring transition, and motion-safe
+            }}
+          />
+          {/* Left navigation */}
+          <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${gestureManager.state().hovering ? "opacity-100" : "opacity-0"}`} onClick={props.onPrev}>
+            <SvgChevronLeft class="w-6 h-6" />
+          </button>
+          {/* Right navigation */}
+          <button class={`absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${gestureManager.state().hovering ? "opacity-100" : "opacity-0"}`} onClick={props.onNext}>
+            <SvgChevronRight class="w-6 h-6" />
+          </button>
+        </div>
         {/* Bottom thumbnail strip */}
-        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-row gap-2 bg-black/60 rounded p-2">
+        <div class="w-full flex flex-row justify-center gap-2 bg-black/60 rounded p-2">
           <For each={thumbnailPointers()}>{(thumbPointer) => {
             const img = galleryGroups && thumbPointer
               ? galleryGroups[thumbPointer.groupIndex].items[thumbPointer.itemIndex].images[thumbPointer.imageIndex][1]
@@ -356,11 +416,6 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
           }</For>
         </div>
       </div>
-
-      {/* Right navigation */}
-      <button class="w-12 flex items-center justify-center text-white/70 hover:text-white transition" onClick={props.onNext}>
-        <span class="text-3xl">&#8594;</span>
-      </button>
     </div>
   );
 };
