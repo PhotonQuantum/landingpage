@@ -13,6 +13,7 @@
     "@solid-primitives/intersection-observer": "^2.2.1",
     "@solid-primitives/media": "^2.3.1",
     "@solid-primitives/resize-observer": "^2.1.1",
+    "@use-gesture/vanilla": "^10.3.1",
     "justified-layout": "^4.1.0",
     "solid-transition-group": "^0.3.0",
     "vinxi": "^0.5.6"

@@ -17,6 +17,9 @@ importers:
       '@solid-primitives/resize-observer':
         specifier: ^2.1.1
         version: 2.1.1(solid-js@1.9.7)
+      '@use-gesture/vanilla':
+        specifier: ^10.3.1
+        version: 10.3.1
       justified-layout:
         specifier: ^4.1.0
         version: 4.1.0
@@ -2049,6 +2052,12 @@ packages:
 
   '@unpic/placeholder@0.1.2':
     resolution: {integrity: sha512-O++tS97biojo5sqn5TeTt+jUjl5gWOdIQuOXe8YluTJWq4L0GM6VuTkaspNpsmxHfioJw/6YBirzOpG4t87l8Q==}
+
+  '@use-gesture/core@10.3.1':
+    resolution: {integrity: sha512-WcINiDt8WjqBdUXye25anHiNxPc0VOrlT8F6LLkU6cycrOGUDyY/yyFmsg3k8i5OLvv25llc0QC45GhR/C8llw==}
+
+  '@use-gesture/vanilla@10.3.1':
+    resolution: {integrity: sha512-lT4scGLu59ovA3zmtUonukAGcA0AdOOh+iwNDS05Bsu7Lq9aZToDHhI6D8Q2qvsVraovtsLLYwPrWdG/noMAKw==}
 
   '@vercel/nft@0.29.3':
     resolution: {integrity: sha512-aVV0E6vJpuvImiMwU1/5QKkw2N96BRFE7mBYGS7FhXUoS6V7SarQ+8tuj33o7ofECz8JtHpmQ9JW+oVzOoB7MA==}
@@ -7195,6 +7204,12 @@ snapshots:
   '@unpic/placeholder@0.1.2':
     dependencies:
       blurhash: 2.0.5
+
+  '@use-gesture/core@10.3.1': {}
+
+  '@use-gesture/vanilla@10.3.1':
+    dependencies:
+      '@use-gesture/core': 10.3.1
 
   '@vercel/nft@0.29.3(rollup@4.41.1)':
     dependencies:

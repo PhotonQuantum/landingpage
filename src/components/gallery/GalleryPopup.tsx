@@ -1,4 +1,5 @@
-import { useContext, createMemo, Component, For } from "solid-js";
+import { Action, createGesture, dragAction, Gesture, GestureHandlers, hoverAction, pinchAction, scrollAction, UserGestureConfig, wheelAction } from "@use-gesture/vanilla";
+import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, Accessor, untrack, onMount } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
 import { GalleryGroup } from "~/data/galleryData";
 import { ImagePointer, prevPointer, nextPointer } from "~/lib/gallery/pointer";
@@ -38,8 +39,194 @@ function getAdjacentPointers(
   return pointers;
 }
 
+interface GestureInput {
+  ref: Accessor<EventTarget | undefined>;
+  actions: Action[];
+  handlers: Accessor<GestureHandlers>;
+  config: Accessor<UserGestureConfig>;
+}
+
+const createGestureHandler = (prop: GestureInput) => {
+  const [gesture, setGesture] = createSignal<Gesture | undefined>(undefined);
+  const Gesture = createGesture(prop.actions);
+
+  const handler = (e: Event) => e.preventDefault();
+
+  createEffect((prev: Gesture | undefined) => {
+    const localRef = prop.ref();
+    if (!localRef) return;
+    if (prev) {
+      prev.destroy();
+    }
+    const g = Gesture(localRef, prop.handlers(), prop.config());
+    setGesture(g);
+    return g;
+  })
+
+  onMount(() => {
+    document.addEventListener('gesturestart', handler)
+    document.addEventListener('gesturechange', handler)
+    document.addEventListener('gestureend', handler)
+  });
+
+  onCleanup(() => {
+    if (gesture()) {
+      gesture()?.destroy();
+    }
+    document.removeEventListener('gesturestart', handler)
+    document.removeEventListener('gesturechange', handler)
+    document.removeEventListener('gestureend', handler)
+  })
+
+  return gesture;
+}
+
+interface GestureManagerProps {
+  ref: Accessor<EventTarget & HTMLElement | undefined>;
+  containerRef: Accessor<EventTarget & HTMLElement | undefined>;
+  onSwipe: (direction: "left" | "right") => void;
+}
+
+interface GestureManagerState {
+  scale: number;
+  x: number;
+  y: number;
+}
+
+interface GestureManagerOutput {
+  state: () => GestureManagerState;
+  setState: (state: Partial<GestureManagerState>) => void;
+}
+
+const createGestureManager = (props: GestureManagerProps): GestureManagerOutput => {
+  const [state, setState] = createSignal<GestureManagerState>({
+    scale: 1,
+    x: 0,
+    y: 0,
+  });
+  createGestureHandler({
+    ref: props.ref,
+    actions: [dragAction, pinchAction, hoverAction],
+    handlers: () => {
+      const container = props.containerRef();
+      const target = props.ref();
+      return ({
+        onDrag: ({ swipe: [swipeX], offset: [x, y] }) => {
+          if (swipeX) {
+            props.onSwipe(swipeX > 0 ? "left" : "right");
+          }
+          setState((prev) => {
+            return {
+              ...prev,
+              x: x,
+              y: prev.scale > 1 ? y : 0,
+            }
+          })
+        },
+        onDragEnd: () => {
+          setState((prev) => {
+            const swipe = panSwipeIntention(container!, target!, prev.x, prev.y);
+            if (untrack(state).scale <= 1 && swipe) {
+              props.onSwipe(swipe);
+            }
+            const bounds = calcPanBounds(container!, target!);
+            return {
+              ...prev,
+              x: Math.max(bounds.left, Math.min(bounds.right, prev.x)),
+              y: Math.max(bounds.top, Math.min(bounds.bottom, prev.y)),
+            }
+          });
+        },
+        onPinch: ({ origin: [ox, oy], first, movement: [ms], offset: [s], memo }) => {
+          if (first) {
+            const { width, height, x, y } = target!.getBoundingClientRect()
+            const tx = ox - (x + width / 2)
+            const ty = oy - (y + height / 2)
+            memo = [state().x, state().y, tx, ty]
+          }
+
+          const x = memo[0] - (ms - 1) * memo[2]
+          const y = memo[1] - (ms - 1) * memo[3]
+          setState((prev) => ({
+            ...prev,
+            scale: s,
+            x: x,
+            y: y,
+          }));
+          return memo;
+        },
+        onPinchEnd: () => {
+          setState((prev) => {
+            const bounds = calcPanBounds(container!, target!);
+            return {
+              ...prev,
+              x: Math.max(bounds.left, Math.min(bounds.right, prev.x)),
+              y: Math.max(bounds.top, Math.min(bounds.bottom, prev.y)),
+            }
+          });
+        },
+      });
+    },
+    config: () => {
+      const container = props.containerRef();
+      const target = props.ref();
+
+      return {
+        drag: {
+          from: () => [untrack(state).x, untrack(state).y],
+          bounds: () => {
+            const bounds = calcPanBounds(container!, target!);
+            if (untrack(state).scale <= 1) {
+              return {
+                top: bounds.top,
+                bottom: bounds.bottom,
+              }
+            } else {
+              return bounds
+            }
+          },
+          preventDefault: true,
+          rubberband: true,
+        },
+        pinch: { scaleBounds: { min: 1, max: 5 }, rubberband: true },
+        scroll: { preventDefault: true },
+      }
+    },
+  });
+  return {
+    state: () => state(),
+    setState: (state: Partial<GestureManagerState>) => setState((prev) => ({ ...prev, ...state })),
+  };
+}
+
+const panSwipeIntention = (container: HTMLElement, target: HTMLElement, x: number, y: number) => {
+  const { width: tWidth } = target.getBoundingClientRect();
+  console.log("pan swipe intention", "x", x, "threshold (right)", tWidth / 2, "threshold (left)", -tWidth / 2);
+  if (x > tWidth / 2) {
+    return "right";
+  } else if (x < -tWidth / 2) {
+    return "left";
+  } else {
+    return undefined;
+  }
+}
+
+const calcPanBounds = (container: HTMLElement, target: HTMLElement) => {
+  const { width, height } = container.getBoundingClientRect();
+  const { width: tWidth, height: tHeight } = target.getBoundingClientRect();
+  return {
+    left: Math.min(0, (width - tWidth) / 2),
+    top: Math.min(0, (height - tHeight) / 2),
+    right: -Math.min(0, (width - tWidth) / 2),
+    bottom: -Math.min(0, (height - tHeight) / 2),
+  }
+}
+
 export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   const galleryGroups = useContext(GalleryGroupsContext)!;
+
+  const [imgRef, setImgRef] = createSignal<EventTarget & HTMLImageElement | undefined>(undefined);
+  const [containerRef, setContainerRef] = createSignal<EventTarget & HTMLElement | undefined>(undefined);
 
   const currentImage = createMemo(() => {
     const p = props.pointer;
@@ -47,9 +234,30 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
     return galleryGroups[p.groupIndex].items[p.itemIndex].images[p.imageIndex][1];
   });
   const currentInfo = createMemo(() => currentImage() || {});
+  const currentImageItems = createMemo(() => currentImage()?.items || []);
 
   // Use the extracted utility for thumbnail pointers
   const thumbnailPointers = createMemo(() => getAdjacentPointers(galleryGroups, props.pointer, 2));
+
+  const gestureManager = createGestureManager({
+    ref: imgRef,
+    containerRef: containerRef,
+    onSwipe: (direction) => {
+      if (direction === "left") props.onNext();
+      else props.onPrev();
+    },
+  });
+
+  const aspectRatio = createMemo(() => {
+    const img = currentImageItems()[currentImageItems().length - 1];
+    if (!img) return 1;
+    return img.width / img.height;
+  });
+
+  createEffect(() => {
+    currentImage(); // dependency
+    gestureManager?.setState({ scale: 1, x: 0, y: 0 });
+  });
 
   return (
     <div class="fixed inset-0 z-100 flex flex-row bg-black/80">
@@ -59,8 +267,20 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
       </button>
 
       {/* Main image area */}
-      <div class="flex-1 flex flex-col justify-center items-center relative">
-        <img src={currentImage()?.items?.[0]?.src || ""} alt="main" class="max-h-[70vh] max-w-full rounded shadow-lg object-contain bg-black" />
+      <div class="flex-1 flex flex-col justify-center items-center relative" ref={setContainerRef}>
+        <img
+          ref={setImgRef}
+          src={currentImageItems()[currentImageItems().length - 1]?.src || ""}
+          width={currentImageItems()[currentImageItems().length - 1]?.width || 0}
+          height={currentImageItems()[currentImageItems().length - 1]?.height || 0}
+          alt="main"
+          draggable={false}
+          class={`${aspectRatio() > 1 ? "w-full h-auto" : "h-full w-auto"} rounded shadow-lg object-contain bg-black touch-none select-none`}
+          style={{
+            "transform": `translate(${gestureManager.state().x}px, ${gestureManager.state().y}px) scale(${gestureManager.state().scale})`,
+            "transition": "transform 0.2s cubic-bezier(.4,2,.6,1)"
+          }}
+        />
         {/* Bottom thumbnail strip */}
         <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-row gap-2 bg-black/60 rounded p-2">
           <For each={thumbnailPointers()}>{(thumbPointer) => {
