@@ -110,7 +110,6 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
   // 1. Filtered wheel event for scale = 1, only process swipe events.
   // 2. No special handling for scale > 1.
   // 3. Reliable bound calculation. Manual rubberbanding if needed.
-  const [blockWheel, setBlockWheel] = createSignal(false);
   createGestureHandler({
     ref: props.ref,
     actions: [dragAction, pinchAction, hoverAction, wheelAction],
@@ -172,33 +171,26 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
             }
           });
         },
-        onWheel: ({ first, last, movement: [x, y], memo }) => {
-          if (untrack(blockWheel)) {
-            return;
-          }
-
+        onWheel: ({ first, movement: [x, y], memo }) => {
           setState((prev) => {
-            if (first) {
-              memo = [prev.x, prev.y]
+            if (prev.scale <= 1) {
+              // TODO add a tooltip telling users to use control to switch images
+              return prev;
             }
 
-            const swipe = panSwipeIntention(target!, prev.x, prev.y);
-            if (swipe) {
-              setBlockWheel(true);
-              props.onSwipe(swipe);
+            if (first) {
+              memo = [prev.x, prev.y]
             }
 
             return {
               ...prev,
               x: memo[0] - x,
-              y: prev.scale > 1 ? memo[1] - y : 0,
+              y: memo[1] - y,
             }
           });
           return memo;
-          // TODO: Implement wheel based zoom and swipe
         },
         onWheelEnd: () => {
-          setBlockWheel(false);
           const bounds = calcPanBounds(container!, target!);
           setState((prev) => ({
             ...prev,
