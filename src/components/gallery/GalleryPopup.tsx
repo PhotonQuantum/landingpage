@@ -9,6 +9,7 @@ import { createElementSize } from "@solid-primitives/resize-observer";
 import SvgChevronLeft from "@tabler/icons/outline/chevron-left.svg";
 import SvgChevronRight from "@tabler/icons/outline/chevron-right.svg";
 import { makeTimer } from "@solid-primitives/timer";
+import { createDerivedSpring } from "@solid-primitives/spring";
 
 export interface GalleryPopupProps {
   pointer: ImagePointer | undefined;
@@ -95,15 +96,22 @@ interface GestureManagerProps {
   onTrackpadUnreliable?: () => void;
 }
 
-interface GestureManagerState {
+interface GestureManagerStateInternal {
   scale: number;
   x: number;
   y: number;
   hovering: boolean;
 }
 
+type GestureManagerState = {
+  scale: number;
+  x: number;
+  y: number;
+}
+
 interface GestureManagerOutput {
-  state: () => GestureManagerState;
+  hovering: Accessor<boolean>;
+  state: Accessor<GestureManagerState>;
   setState: (state: Partial<GestureManagerState>) => void;
 }
 
@@ -120,7 +128,7 @@ const initWheelMemo = (origin: [number, number]) => {
 }
 
 const createGestureManager = (props: GestureManagerProps): GestureManagerOutput => {
-  const [state, setState] = createSignal<GestureManagerState>({
+  const [state, setState] = createSignal<GestureManagerStateInternal>({
     scale: 1,
     x: 0,
     y: 0,
@@ -138,11 +146,15 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
       const container = props.containerRef();
       const target = props.ref();
       return ({
-        onDrag: ({ swipe: [swipeX], offset: [x, y] }) => {
-          if (swipeX) {
-            props.onSwipe(swipeX > 0 ? "left" : "right");
+        onDrag: ({ pinching, cancel, swipe: [swipeX], offset: [x, y] }) => {
+          if (pinching) {
+            cancel();
+            return;
           }
           setState((prev) => {
+            if (prev.scale <= 1 && swipeX) {
+              props.onSwipe(swipeX > 0 ? "left" : "right");
+            }
             return {
               ...prev,
               x: x,
@@ -153,7 +165,7 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
         onDragEnd: () => {
           setState((prev) => {
             const swipe = panSwipeIntention(target!, prev.x, prev.y);
-            if (untrack(state).scale <= 1 && swipe) {
+            if (prev.scale <= 1 && swipe) {
               props.onSwipe(swipe);
             }
             const bounds = calcPanBounds(container!, target!);
@@ -269,7 +281,12 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
     },
   });
   return {
-    state: () => state(),
+    hovering: () => state().hovering,
+    state: () => ({
+      scale: state().scale,
+      x: state().x,
+      y: state().y,
+    }),
     setState: (state: Partial<GestureManagerState>) => setState((prev) => ({ ...prev, ...state })),
   };
 }
@@ -324,7 +341,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
     makeTimer(() => setShowTooltip(false), 4000, setTimeout);
   };
 
-  const gestureManager = createGestureManager({
+  const {state: geometry_, setState: setGeometry, hovering} = createGestureManager({
     ref: imgRef,
     containerRef: containerRef,
     areaRef: containerRef,
@@ -333,6 +350,9 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
       else props.onPrev();
     },
     onTrackpadUnreliable: triggerTooltip,
+  });
+  const geometry = createDerivedSpring(geometry_, {
+    stiffness: 0.3,
   });
 
   const imgAspectRatio = createMemo(() => {
@@ -343,7 +363,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
 
   createEffect(() => {
     currentImage(); // dependency
-    gestureManager?.setState({ scale: 1, x: 0, y: 0 });
+    setGeometry({ scale: 1, x: 0, y: 0 });
   });
 
   return (
@@ -369,17 +389,16 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
             draggable={false}
             class={`${imgAspectRatio() > containerAspectRatio() ? "w-full h-auto" : "h-full w-auto"} bg-no-repeat bg-center bg-cover touch-none select-none`}
             style={{
-              "transform": `translate(${gestureManager.state().x}px, ${gestureManager.state().y}px) scale(${gestureManager.state().scale})`,
-              "transition": "transform 0.2s cubic-bezier(.4,2,.6,1)",// TODO js based spring transition, and motion-safe
+              "transform": `translate(${geometry().x}px, ${geometry().y}px) scale(${geometry().scale})`,
               "background-image": currentImageItems()[0]?.src ? `url(${currentImageItems()[0]?.src})` : undefined,
             }}
           />
           {/* Left navigation */}
-          <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition-opacity z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${gestureManager.state().hovering ? "opacity-100" : "opacity-0"}`} onClick={props.onPrev}>
+          <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition-opacity z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={props.onPrev}>
             <SvgChevronLeft class="w-6 h-6" />
           </button>
           {/* Right navigation */}
-          <button class={`absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${gestureManager.state().hovering ? "opacity-100" : "opacity-0"}`} onClick={props.onNext}>
+          <button class={`absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={props.onNext}>
             <SvgChevronRight class="w-6 h-6" />
           </button>
         </div>

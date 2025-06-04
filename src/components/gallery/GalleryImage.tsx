@@ -1,4 +1,4 @@
-import { Component, createSignal, For, Show } from "solid-js";
+import { Component, createEffect, createMemo, createSignal, For, onMount, Show, splitProps } from "solid-js";
 import type { JSX } from "solid-js";
 import { Picture } from "vite-imagetools";
 import { LayoutBox } from "~/lib/gallery/types";
@@ -9,23 +9,27 @@ import SvgStopwatch from "@tabler/icons/outline/stopwatch.svg"
 import { useTapOrClick } from "~/lib/gallery/useTapOrClick";
 import { createLocale } from "~/lib/gallery/createLocale";
 import { dateWithOffset } from "~/lib/gallery/utils";
+import { makeTimer } from "@solid-primitives/timer";
 
 const dateOptions: Intl.DateTimeFormatOptions = {
   month: '2-digit', day: '2-digit',
   hour: '2-digit', minute: '2-digit'
 };
 
-interface GalleryImageProps {
+interface GalleryImageProps extends Omit<JSX.HTMLAttributes<HTMLDivElement>, "style"> {
   image: Picture & ImageWithBlurhash & ExifMetadata;
   box: LayoutBox;
   mode: 'grid' | 'justified';
+  willChange?: boolean;
   onClick: () => void;
 }
 
 export const GalleryImage: Component<GalleryImageProps> = (props) => {
   const image = () => props.image;
-  const box = () => props.box;
-  const mode = () => props.mode;
+  const box = createMemo(() => props.box);
+  const mode = createMemo(() => props.mode);
+
+  const [_, others] = splitProps(props, ["image", "box", "mode", "onClick", "class", "willChange"]);
 
   const [isLoaded, setIsLoaded] = createSignal(false);
   const tap = useTapOrClick({
@@ -55,28 +59,39 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
     return `1/${Math.round(1 / exposure)}`;
   }
 
-  // Style for the image container
-  const containerStyle = (): JSX.CSSProperties =>
-    mode() === 'justified'
-      ? {
-        position: 'absolute',
-        left: `${box().left}px`,
-        top: `${box().top}px`,
-        width: `${box().width}px`,
-        height: `${box().height}px`,
-      }
-      : {
-        position: 'static',
-        width: '100%',
-      };
+  let elRef!: HTMLDivElement;
+
+  // NOTE pretty weird, this is the only way to get transition of width and height to work
+  createEffect(() => {
+    console.log("image position change", "left (previous)", elRef.style.left, "left (new)", box().left);
+    elRef.getBoundingClientRect();
+    elRef.style.setProperty("position", mode() === 'justified' ? 'absolute' : 'static');
+    elRef.style.setProperty("left", mode() === 'justified' ? `${box().left}px` : 'auto');
+    elRef.style.setProperty("top", mode() === 'justified' ? `${box().top}px` : 'auto');
+    elRef.style.setProperty("width", mode() === 'justified' ? `${box().width}px` : '100%');
+    elRef.style.setProperty("height", mode() === 'justified' ? `${box().height}px` : 'auto');
+    elRef.getBoundingClientRect();
+    console.log("image position change end");
+  })
+
+  const [allowTransition, setAllowTransition] = createSignal(false);
+  onMount(() => {
+    // NOTE Hack: disable transition during initial layout
+    makeTimer(() => {
+      setAllowTransition(true);
+    }, 100, setTimeout);
+  })
 
   return (
     <div
-      ref={tap.setRef}
-      class={`gallery-item overflow-hidden rounded-xs cursor-pointer${mode() === 'justified' ? ' absolute' : ' relative aspect-[4/3]'}`}
+      ref={(el) => {
+        tap.setRef(el);
+        elRef = el;
+      }}
+      class={`gallery-item overflow-hidden rounded-xs cursor-pointer${mode() === 'justified' ? ' absolute' : ' relative aspect-[4/3]'} ${props.class} ${props.willChange ? 'will-change-transform' : ''} ${allowTransition() ? 'motion-safe:transition-all motion-safe:gallery-transition' : 'transition-none'}`}
       data-key={image().filename}
-      style={containerStyle()}
       {...tap.bind}
+      {...others}
     >
       <div class={`relative w-full h-full group${tap.overlayActive() ? ' overlay-active' : ''}`}>
         {image().blurhashGradient && !isLoaded() && (
@@ -97,8 +112,6 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
           </For>
           <img
             src={image().img.src}
-            width={box().width}
-            height={box().height}
             sizes={`${box().width}px`}
             alt={image().filename}
             class="absolute inset-0 w-full h-full object-cover rounded-xs transition-transform duration-300 group-hover:scale-105"

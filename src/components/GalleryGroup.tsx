@@ -141,6 +141,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
     if (container && typeof window !== 'undefined') {
       const localLayoutMap = layoutMap();
       requestAnimationFrame(() => {
+        // NOTE this is now only used to move animated elements to top. The actual animation is now done via css transition.
         animatePositions(container, localLayoutMap);
       });
     }
@@ -198,6 +199,8 @@ export function GalleryGroup(props: GalleryGroupProps) {
     setLayoutMode("justified");
   });
 
+  const [changeSoon, setChangeSoon] = createSignal(false);
+
   return (
     <div>
       <div ref={el => sentinelRef = el} class="h-0 scroll-mt-18" />
@@ -209,6 +212,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
         onCollapse={handleCollapse}
         isSticky={isSticky}
         onHeaderClick={handleHeaderClick}
+        onChangeSoon={setChangeSoon}
       />
       <div class="p-2">
         <div
@@ -219,6 +223,7 @@ export function GalleryGroup(props: GalleryGroupProps) {
           <Dynamic component={prefersReducedMotion() ? "div" : TransitionGroup} name="fade">
             <For each={visibleImages}>{(image, i) => (
               <GalleryImage
+                willChange={changeSoon()}
                 image={image}
                 box={layoutMode() === 'justified' ? layout.boxes[i()] : positionLike(layout.boxes[i()])}
                 mode={layoutMode()}

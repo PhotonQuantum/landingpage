@@ -1,8 +1,8 @@
 import { createSignal } from "solid-js";
 import { createMediaQuery } from "@solid-primitives/media";
 import { LayoutBox } from "./types";
-import { identity } from "./helpers";
 
+// NOTE this function now only moves animated elements to top. The actual animation is now done via css transition.
 export function useGalleryAnimation() {
   const [prevLayoutMap, setPrevLayoutMap] = createSignal<Map<string, LayoutBox>>(new Map());
   const prefersReducedMotion = createMediaQuery("(prefers-reduced-motion: reduce)");
@@ -10,20 +10,7 @@ export function useGalleryAnimation() {
   const animatePositions = async (container: HTMLDivElement, layoutMap: Map<string, LayoutBox>) => {
     const elements = container.querySelectorAll('.gallery-item');
 
-    // If reduced motion is preferred, just update positions without animation
-    if (prefersReducedMotion()) {
-      elements.forEach((el) => {
-        const key = el.getAttribute('data-key');
-        if (key) {
-          const currentPos = layoutMap.get(key);
-          if (currentPos) {
-            (el as HTMLElement).style.transform = 'translate(0px, 0px)';
-          }
-        }
-      });
-      setPrevLayoutMap(layoutMap);
-      return;
-    }
+    if (prefersReducedMotion()) return;
 
     elements.forEach((el) => {
       const key = el.getAttribute('data-key');
@@ -32,27 +19,7 @@ export function useGalleryAnimation() {
         const currentPos = layoutMap.get(key);
 
         if (prevPos && currentPos) {
-          const deltaX = prevPos.left - currentPos.left;
-          const deltaY = prevPos.top - currentPos.top;
-
-          // Force a reflow.
           (el as HTMLElement).style.zIndex = '30';
-
-          if (deltaX !== 0 || deltaY !== 0) {
-            const animation = el.animate(
-              [
-                { transform: `translate(${deltaX}px, ${deltaY}px)` },
-                { transform: 'translate(0px, 0px)' }
-              ],
-              {
-                duration: 800,
-                easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
-              }
-            );
-            animation.onfinish = () => {
-              (el as HTMLElement).style.zIndex = 'auto';
-            };
-          }
         }
       }
     });

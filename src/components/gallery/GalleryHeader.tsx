@@ -11,6 +11,7 @@ interface GalleryHeaderProps {
     onCollapse: () => void;
     isSticky: Accessor<boolean>;
     onHeaderClick: () => void;
+    onChangeSoon: (changeSoon: boolean) => void;
 }
 
 export const GalleryHeader: Component<GalleryHeaderProps> = (props) => {
@@ -21,7 +22,8 @@ export const GalleryHeader: Component<GalleryHeaderProps> = (props) => {
         "onExpand",
         "onCollapse",
         "isSticky",
-        "onHeaderClick"
+        "onHeaderClick",
+        "onChangeSoon"
     ]);
 
     return (
@@ -40,6 +42,8 @@ export const GalleryHeader: Component<GalleryHeaderProps> = (props) => {
                     <button
                         class="flex items-center gap-1 text-xs font-semibold cursor-pointer px-3 py-1 rounded-full bg-ctp-mantle/60 border border-ctp-subtext0/10 text-ctp-subtext0 hover:bg-ctp-mantle/80 hover:text-ctp-text motion-safe:transition-colors"
                         onClick={local.isExpanded() ? local.onCollapse : local.onExpand}
+                        onMouseEnter={() => local.onChangeSoon(true)}
+                        onMouseLeave={() => local.onChangeSoon(false)}
                     >
                         {local.isExpanded() ? "Collapse" : "Expand"}
                         {local.isExpanded() ? (

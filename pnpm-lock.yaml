@@ -17,6 +17,9 @@ importers:
       '@solid-primitives/resize-observer':
         specifier: ^2.1.1
         version: 2.1.1(solid-js@1.9.7)
+      '@solid-primitives/spring':
+        specifier: ^0.1.1
+        version: 0.1.1(solid-js@1.9.7)
       '@solid-primitives/timer':
         specifier: ^1.4.1
         version: 1.4.1(solid-js@1.9.7)
@@ -135,6 +138,9 @@ importers:
       tailwindcss:
         specifier: ^4.1.8
         version: 4.1.8
+      tailwindcss-spring:
+        specifier: ^1.0.1
+        version: 1.0.1(tailwindcss@4.1.8)
       vite-imagetools:
         specifier: ^7.1.0
         version: 7.1.0(rollup@4.41.1)
@@ -1813,6 +1819,11 @@ packages:
 
   '@solid-primitives/rootless@1.5.1':
     resolution: {integrity: sha512-G4eNC6F3ufRT2Mjbodl7rSOH7uq/Emqs3S7/BIBWgh+V/IFUtvu6WELeqSrk4FJX3T/kKKvC+T8gXhepExSWyg==}
+    peerDependencies:
+      solid-js: ^1.6.12
+
+  '@solid-primitives/spring@0.1.1':
+    resolution: {integrity: sha512-vABzNZ/H855qyDJddx0O+fSSITbK2LtjtZI6M0j0ola9QecmpoGL/fhYhS8suPRiFN0gTIdClVfSOqRCV0puAA==}
     peerDependencies:
       solid-js: ^1.6.12
 
@@ -4523,6 +4534,11 @@ packages:
     resolution: {integrity: sha512-ulAk51I9UVUyJgxlv9M6lFot2WP3e7t8Kz9+IS6D4rVba1tR9kON+Ey69f+1R4Q8cd45Lod6a4IcJIxnzGc/zA==}
     engines: {node: '>=18'}
 
+  tailwindcss-spring@1.0.1:
+    resolution: {integrity: sha512-v8ibKyVCgbFcHzP9EFSbsvR0vH7Vk2Skl9JnJ9HUrnA16NhjvI4SlV9Y4SkinL+4bNrm1XpftZwX1DAD1mNZFA==}
+    peerDependencies:
+      tailwindcss: '>=3.0.0 || insiders'
+
   tailwindcss@4.1.8:
     resolution: {integrity: sha512-kjeW8gjdxasbmFKpVGrGd5T4i40mV5J2Rasw48QARfYeQ8YS9x02ON9SFWax3Qf616rt4Cp3nVNIj6Hd1mP3og==}
 
@@ -6898,6 +6914,10 @@ snapshots:
   '@solid-primitives/rootless@1.5.1(solid-js@1.9.7)':
     dependencies:
       '@solid-primitives/utils': 6.3.1(solid-js@1.9.7)
+      solid-js: 1.9.7
+
+  '@solid-primitives/spring@0.1.1(solid-js@1.9.7)':
+    dependencies:
       solid-js: 1.9.7
 
   '@solid-primitives/static-store@0.1.1(solid-js@1.9.7)':
@@ -10373,6 +10393,10 @@ snapshots:
       picocolors: 1.1.1
 
   system-architecture@0.1.0: {}
+
+  tailwindcss-spring@1.0.1(tailwindcss@4.1.8):
+    dependencies:
+      tailwindcss: 4.1.8
 
   tailwindcss@4.1.8: {}
 
