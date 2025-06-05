@@ -38,6 +38,9 @@ importers:
       vinxi:
         specifier: ^0.5.6
         version: 0.5.6(@types/node@22.15.27)(db0@0.3.2)(ioredis@5.6.1)(jiti@2.4.2)(lightningcss@1.30.1)(sass@1.89.0)(terser@5.40.0)(xml2js@0.6.2)(yaml@2.8.0)
+      virtua:
+        specifier: ^0.41.3
+        version: 0.41.3(solid-js@1.9.7)
     devDependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.820.0
@@ -4856,6 +4859,26 @@ packages:
   vinxi@0.5.6:
     resolution: {integrity: sha512-K9zaoHEdLXSVw3akoKcpRaRaGNZcXAnB0XBcke74y0FbXqcR3+rlFxOH/Pi3Maq3K7wAPBGyE91HW0lATfv5Kg==}
     hasBin: true
+
+  virtua@0.41.3:
+    resolution: {integrity: sha512-X0eG4hIsJFrmgiq5kiyxdBqu+83mn2ArO9L16flRg1cN0BrafOmRVYmYijgClKElTlhqLJ57cdGby0X6az2LGw==}
+    peerDependencies:
+      react: '>=16.14.0'
+      react-dom: '>=16.14.0'
+      solid-js: '>=1.0'
+      svelte: '>=5.0'
+      vue: '>=3.2'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+      solid-js:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
 
   vite-imagetools@7.1.0:
     resolution: {integrity: sha512-Mqh1uUY2DEMuBOogFz5Rd7cAs70VP6wsdQh2IShrJ+qGk5f7yQa4pN8w0YMLlGIKYW1JfM8oXrznUwVkhG+qxg==}
@@ -10800,6 +10823,10 @@ snapshots:
       - uploadthing
       - xml2js
       - yaml
+
+  virtua@0.41.3(solid-js@1.9.7):
+    optionalDependencies:
+      solid-js: 1.9.7
 
   vite-imagetools@7.1.0(rollup@4.41.1):
     dependencies:

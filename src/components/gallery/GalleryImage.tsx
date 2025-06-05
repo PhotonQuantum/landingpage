@@ -63,7 +63,6 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
 
   // NOTE pretty weird, this is the only way to get transition of width and height to work
   createEffect(() => {
-    console.log("image position change", "left (previous)", elRef.style.left, "left (new)", box().left);
     elRef.getBoundingClientRect();
     elRef.style.setProperty("position", mode() === 'justified' ? 'absolute' : 'static');
     elRef.style.setProperty("left", mode() === 'justified' ? `${box().left}px` : 'auto');
@@ -71,7 +70,6 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
     elRef.style.setProperty("width", mode() === 'justified' ? `${box().width}px` : '100%');
     elRef.style.setProperty("height", mode() === 'justified' ? `${box().height}px` : 'auto');
     elRef.getBoundingClientRect();
-    console.log("image position change end");
   })
 
   const [allowTransition, setAllowTransition] = createSignal(false);

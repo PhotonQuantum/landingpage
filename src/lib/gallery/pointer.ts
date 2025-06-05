@@ -1,10 +1,20 @@
 import { GalleryGroup } from "~/data/galleryData";
+import { ViewerImage, ImageWithBlurhash, ExifMetadata } from "~/data/galleryData";
 
-export interface ImagePointer {
+export type ImagePointer = {
     groupIndex: number;
     itemIndex: number;
     imageIndex: number;
-}
+};
+
+export const isPointerEqualOpt = (a?: ImagePointer, b?: ImagePointer) => {
+    if (!a || !b) return false;
+    return a.groupIndex === b.groupIndex && a.itemIndex === b.itemIndex && a.imageIndex === b.imageIndex;
+};
+
+export const isPointerEqual = (a: ImagePointer, b: ImagePointer) => {
+    return a.groupIndex === b.groupIndex && a.itemIndex === b.itemIndex && a.imageIndex === b.imageIndex;
+};
 
 export const locatePointer = (galleryGroups: GalleryGroup[], galleryItemId: string, imageId: string): ImagePointer | undefined => {
     const groupIndex = galleryGroups.findIndex(group => group.items.some(item => item.id === galleryItemId));
@@ -75,13 +85,19 @@ export const prevPointer = (galleryGroups: GalleryGroup[], pointer: ImagePointer
     return undefined;
 };
 
-export const reverseLookupPointer = (galleryGroups: GalleryGroup[], pointer: ImagePointer): [string, string] | undefined => {
-    if (!galleryGroups || !pointer) return undefined;
+export interface reverseLookupPointerResult {
+    galleryItemId: string;
+    imageId: string;
+    image: ViewerImage & ImageWithBlurhash & ExifMetadata;
+}
+
+export const reverseLookupPointer = (galleryGroups: GalleryGroup[], pointer: ImagePointer): reverseLookupPointerResult => {
     const group = galleryGroups[pointer.groupIndex];
-    if (!group) return undefined;
     const item = group.items[pointer.itemIndex];
-    if (!item) return undefined;
     const image = item.images[pointer.imageIndex];
-    if (!image) return undefined;
-    return [item.id, image[0]];
+    return {
+        galleryItemId: item.id,
+        imageId: image[0],
+        image: image[1]
+    };
 };

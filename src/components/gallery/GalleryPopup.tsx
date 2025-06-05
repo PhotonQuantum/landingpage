@@ -1,5 +1,5 @@
-import { Action, createGesture, dragAction, Gesture, GestureHandlers, hoverAction, pinchAction, scrollAction, UserGestureConfig, wheelAction } from "@use-gesture/vanilla";
-import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, Accessor, untrack, onMount, Show } from "solid-js";
+import { Action, createGesture, dragAction, Gesture, GestureHandlers, hoverAction, pinchAction, UserGestureConfig, wheelAction } from "@use-gesture/vanilla";
+import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, Accessor, untrack, onMount, JSX, splitProps } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
 import { GalleryGroup } from "~/data/galleryData";
 import { ImagePointer, prevPointer, nextPointer } from "~/lib/gallery/pointer";
@@ -10,40 +10,14 @@ import SvgChevronLeft from "@tabler/icons/outline/chevron-left.svg";
 import SvgChevronRight from "@tabler/icons/outline/chevron-right.svg";
 import { makeTimer } from "@solid-primitives/timer";
 import { createDerivedSpring } from "@solid-primitives/spring";
+import GalleryThumbnails from "./GalleryThumbnails";
 
-export interface GalleryPopupProps {
+export interface GalleryPopupProps extends Omit<JSX.HTMLAttributes<HTMLDivElement>, "onSelect"> {
   pointer: ImagePointer | undefined;
   onPrev: () => void;
   onNext: () => void;
   onClose: () => void;
   onSelect: (pointer: ImagePointer) => void;
-}
-
-// Utility to get a window of adjacent pointers
-function getAdjacentPointers(
-  galleryGroups: GalleryGroup[],
-  pointer: ImagePointer | undefined,
-  windowSize: number = 2
-): ImagePointer[] {
-  if (!galleryGroups || !pointer) return [];
-  let pointers: ImagePointer[] = [pointer];
-  // Walk backwards
-  let prev = pointer;
-  for (let i = 0; i < windowSize; i++) {
-    const prevP = prevPointer(galleryGroups, prev);
-    if (!prevP) break;
-    pointers.unshift(prevP);
-    prev = prevP;
-  }
-  // Walk forwards
-  let next = pointer;
-  for (let i = 0; i < windowSize; i++) {
-    const nextP = nextPointer(galleryGroups, next);
-    if (!nextP) break;
-    pointers.push(nextP);
-    next = nextP;
-  }
-  return pointers;
 }
 
 interface GestureInput {
@@ -74,15 +48,19 @@ const createGestureHandler = (prop: GestureInput) => {
     document.addEventListener('gesturestart', handler)
     document.addEventListener('gesturechange', handler)
     document.addEventListener('gestureend', handler)
+    disableBodyScroll(document.body);
   });
 
   onCleanup(() => {
     if (gesture()) {
       gesture()?.destroy();
     }
-    document.removeEventListener('gesturestart', handler)
-    document.removeEventListener('gesturechange', handler)
-    document.removeEventListener('gestureend', handler)
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('gesturestart', handler)
+      document.removeEventListener('gesturechange', handler)
+      document.removeEventListener('gestureend', handler)
+      enableBodyScroll(document.body);
+    }
   })
 
   return gesture;
@@ -245,10 +223,8 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
           }));
           if (hovering) {
             document.documentElement.style.overscrollBehaviorX = "none";
-            disableBodyScroll(document.body);
           } else {
             document.documentElement.style.overscrollBehaviorX = "auto";
-            enableBodyScroll(document.body);
           }
         },
       });
@@ -314,6 +290,8 @@ const calcPanBounds = (container: HTMLElement, target: HTMLElement) => {
 }
 
 export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
+  const [_, others] = splitProps(props, ["pointer", "onPrev", "onNext", "onClose", "onSelect"]);
+
   const galleryGroups = useContext(GalleryGroupsContext)!;
 
   const [imgRef, setImgRef] = createSignal<EventTarget & HTMLImageElement | undefined>(undefined);
@@ -332,16 +310,13 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   const currentInfo = createMemo(() => currentImage() || {});
   const currentImageItems = createMemo(() => currentImage()?.items || []);
 
-  // Use the extracted utility for thumbnail pointers
-  const thumbnailPointers = createMemo(() => getAdjacentPointers(galleryGroups, props.pointer, 2));
-
   // Helper to show tooltip for a few seconds
   const triggerTooltip = () => {
     setShowTooltip(true);
     makeTimer(() => setShowTooltip(false), 4000, setTimeout);
   };
 
-  const {state: geometry_, setState: setGeometry, hovering} = createGestureManager({
+  const { state: geometry_, setState: setGeometry, hovering } = createGestureManager({
     ref: imgRef,
     containerRef: containerRef,
     areaRef: containerRef,
@@ -367,10 +342,10 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   });
 
   return (
-    <div class="fixed inset-0 z-100 flex flex-row bg-black">
+    <div class="fixed inset-0 z-100 flex flex-row bg-black" {...others}>
       <div class="absolute w-full h-full -z-10" style={{ "background": currentImage()?.blurhashGradient }}></div>
       {/* Main image area */}
-      <div class="flex-1 flex flex-col justify-center items-center relative">
+      <div class="flex-1 min-w-0 flex flex-col justify-center items-center relative">
         {/* Tooltip */}
         <div
           class={`absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/90 text-white text-sm px-4 py-2 rounded shadow-lg border border-white/10 z-50 cursor-pointer motion-safe:transition-opacity ${showTooltip() ? "opacity-100" : "opacity-0"}`}
@@ -403,25 +378,15 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
           </button>
         </div>
         {/* Bottom thumbnail strip */}
-        <div class="w-full flex flex-row justify-center gap-2 bg-black/70 backdrop-blur-3xl p-2">
-          <For each={thumbnailPointers()}>{(thumbPointer) => {
-            const img = galleryGroups && thumbPointer
-              ? galleryGroups[thumbPointer.groupIndex].items[thumbPointer.itemIndex].images[thumbPointer.imageIndex][1]
-              : undefined;
-            return (
-              <img
-                src={img?.items?.[0]?.src || ""}
-                alt={`thumb`}
-                class={`h-16 w-16 object-cover rounded-xl cursor-pointer border-2 ${JSON.stringify(thumbPointer) === JSON.stringify(props.pointer) ? 'border-accent' : 'border-transparent'}`}
-                onClick={() => props.onSelect(thumbPointer)}
-              />
-            );
-          }}</For>
-        </div>
+        <GalleryThumbnails
+          galleryGroups={galleryGroups}
+          pointer={props.pointer}
+          onSelect={props.onSelect}
+        />
       </div>
 
       {/* Right info panel */}
-      <div class="w-[340px] bg-black/50 text-white p-6 overflow-y-auto backdrop-blur-3xl flex flex-col">
+      <div class="w-[340px] shrink-0 bg-black/50 text-white p-6 overflow-y-auto backdrop-blur-3xl flex flex-col">
         <button class="self-end mb-2 text-white/70 hover:text-white" onClick={props.onClose}>
           <span class="text-2xl">&#10005;</span>
         </button>

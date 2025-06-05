@@ -1,5 +1,4 @@
 import { useLocation, useNavigate, useParams } from "@solidjs/router";
-import { Portal } from "solid-js/web";
 import { useContext, createMemo } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
 import { GalleryPopup } from "~/components/gallery/GalleryPopup";
@@ -27,8 +26,8 @@ export default function PopupView() {
 
   // Navigation handlers
   const selectImage = (pointer: ImagePointer) => {
-    const [itemId, imageId] = reverseLookupPointer(galleryGroups, pointer)!;
-    navigate(`${itemId}/${imageId}`, { scroll: false });
+    const { galleryItemId, imageId } = reverseLookupPointer(galleryGroups, pointer);
+    navigate(`${galleryItemId}/${imageId}`, { scroll: false });
   };
   const onPrev = () => {
     if (!pointer()) return;
@@ -45,14 +44,12 @@ export default function PopupView() {
   };
 
   return (
-    <Portal>
-      <GalleryPopup
-        pointer={pointer()}
-        onPrev={onPrev}
-        onNext={onNext}
-        onClose={onClose}
-        onSelect={selectImage}
-      />
-    </Portal>
+    <GalleryPopup
+      pointer={pointer()}
+      onPrev={onPrev}
+      onNext={onNext}
+      onClose={onClose}
+      onSelect={selectImage}
+    />
   );
 }

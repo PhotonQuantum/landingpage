@@ -10,15 +10,15 @@ export default function Gallery(props: RouteSectionProps) {
 
     return (
         <GalleryGroupsContext.Provider value={galleryGroups}>
+            <Suspense>
+                {props.children}
+            </Suspense>
             <div class="flex flex-col">
                 <For each={galleryGroups}>{group =>
                     <GalleryGroup group={group} onNavigate={(filename) => {
                         navigate(`${filename}`, { scroll: false, state: { fromGallery: true } });
                     }} />
                 }</For>
-                <Suspense>
-                    {props.children}
-                </Suspense>
             </div>
         </GalleryGroupsContext.Provider>
     );
