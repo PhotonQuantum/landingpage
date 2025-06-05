@@ -1,9 +1,7 @@
 import { Action, createGesture, dragAction, Gesture, GestureHandlers, hoverAction, pinchAction, UserGestureConfig, wheelAction } from "@use-gesture/vanilla";
 import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, Accessor, untrack, onMount, JSX, splitProps } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
-import { GalleryGroup } from "~/data/galleryData";
-import { ImagePointer, prevPointer, nextPointer } from "~/lib/gallery/pointer";
-import { enableBodyScroll, disableBodyScroll } from "body-scroll-lock";
+import { ImagePointer } from "~/lib/gallery/pointer";
 import { createElementSize } from "@solid-primitives/resize-observer";
 
 import SvgChevronLeft from "@tabler/icons/outline/chevron-left.svg";
@@ -11,6 +9,7 @@ import SvgChevronRight from "@tabler/icons/outline/chevron-right.svg";
 import { makeTimer } from "@solid-primitives/timer";
 import { createDerivedSpring } from "@solid-primitives/spring";
 import GalleryThumbnails from "./GalleryThumbnails";
+import { lock, unlock } from "tua-body-scroll-lock";
 
 export interface GalleryPopupProps extends Omit<JSX.HTMLAttributes<HTMLDivElement>, "onSelect"> {
   pointer: ImagePointer | undefined;
@@ -48,7 +47,6 @@ const createGestureHandler = (prop: GestureInput) => {
     document.addEventListener('gesturestart', handler)
     document.addEventListener('gesturechange', handler)
     document.addEventListener('gestureend', handler)
-    disableBodyScroll(document.body);
   });
 
   onCleanup(() => {
@@ -59,7 +57,6 @@ const createGestureHandler = (prop: GestureInput) => {
       document.removeEventListener('gesturestart', handler)
       document.removeEventListener('gesturechange', handler)
       document.removeEventListener('gestureend', handler)
-      enableBodyScroll(document.body);
     }
   })
 
@@ -296,6 +293,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
 
   const [imgRef, setImgRef] = createSignal<EventTarget & HTMLImageElement | undefined>(undefined);
   const [containerRef, setContainerRef] = createSignal<EventTarget & HTMLElement | undefined>(undefined);
+  let scrollRefs: HTMLDivElement[] = [];
 
   const containerSize = createElementSize(containerRef);
   const containerAspectRatio = createMemo(() => (containerSize.width ?? 1) / (containerSize.height ?? 1));
@@ -341,6 +339,14 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
     setGeometry({ scale: 1, x: 0, y: 0 });
   });
 
+  onMount(() => {
+    lock(scrollRefs);
+  });
+
+  onCleanup(() => {
+    unlock(scrollRefs);
+  });
+
   return (
     <div class="fixed inset-0 z-100 flex flex-row bg-black" {...others}>
       <div class="absolute w-full h-full -z-10" style={{ "background": currentImage()?.blurhashGradient }}></div>
@@ -379,6 +385,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
         </div>
         {/* Bottom thumbnail strip */}
         <GalleryThumbnails
+          ref={el => scrollRefs.push(el)}
           galleryGroups={galleryGroups}
           pointer={props.pointer}
           onSelect={props.onSelect}
@@ -386,7 +393,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
       </div>
 
       {/* Right info panel */}
-      <div class="w-[340px] shrink-0 bg-black/50 text-white p-6 overflow-y-auto backdrop-blur-3xl flex flex-col">
+      <div ref={el => scrollRefs.push(el)} class="w-[340px] shrink-0 bg-black/50 text-white p-6 overflow-y-auto backdrop-blur-3xl flex flex-col">
         <button class="self-end mb-2 text-white/70 hover:text-white" onClick={props.onClose}>
           <span class="text-2xl">&#10005;</span>
         </button>

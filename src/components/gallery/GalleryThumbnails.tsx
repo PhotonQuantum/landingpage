@@ -1,10 +1,10 @@
-import { batch, createEffect, createMemo, createSignal, For, onMount, untrack } from "solid-js";
+import { batch, createEffect, createMemo, createSignal, For, JSX, onMount, splitProps, untrack } from "solid-js";
 import { GalleryGroup } from "~/data/galleryData";
 import { ImagePointer, isPointerEqual, isPointerEqualOpt, nextPointer, prevPointer, reverseLookupPointer } from "~/lib/gallery/pointer";
 import { VirtualizerHandle, Virtualizer } from "virtua/solid"
 
 
-export interface GalleryThumbnailsProps {
+export interface GalleryThumbnailsProps extends Omit<JSX.HTMLAttributes<HTMLDivElement>, "pointer" | "onSelect"> {
   galleryGroups: GalleryGroup[];
   pointer?: ImagePointer;
   onSelect: (pointer: ImagePointer) => void;
@@ -51,6 +51,8 @@ const batchGetPointers = (
 }
 
 export default function GalleryThumbnails(props: GalleryThumbnailsProps) {
+  const [_, others] = splitProps(props, ["galleryGroups", "pointer", "onSelect"]);
+
   const [handler, setHandler] = createSignal<VirtualizerHandle>();
   const { pointers, prevFetchedCount } = batchGetPointers(props.galleryGroups, props.pointer, true, BATCH_SIZE / 2, BATCH_SIZE / 2)
   const [data, setData] = createSignal<ImagePointer[]>(pointers || []);
@@ -115,7 +117,7 @@ export default function GalleryThumbnails(props: GalleryThumbnailsProps) {
   };
 
   return (
-    <div class="h-20 w-full shrink-0 bg-black/70 backdrop-blur-3xl p-2 overflow-x-auto select-none" style={{ "overflow-anchor": "none", "scrollbar-width": "none" }}>
+    <div {...others} class="h-20 w-full shrink-0 bg-black/70 backdrop-blur-3xl p-2 overflow-x-auto select-none" style={{ "overflow-anchor": "none", "scrollbar-width": "none" }}>
       <Virtualizer ref={(el) => { setHandler(el!); }}
         shift={shift()}
         onScroll={scrollHandler}

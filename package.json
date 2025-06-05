@@ -16,9 +16,9 @@
     "@solid-primitives/spring": "^0.1.1",
     "@solid-primitives/timer": "^1.4.1",
     "@use-gesture/vanilla": "^10.3.1",
-    "body-scroll-lock": "4.0.0-beta.0",
     "justified-layout": "^4.1.0",
     "solid-transition-group": "^0.3.0",
+    "tua-body-scroll-lock": "^1.5.3",
     "vinxi": "^0.5.6",
     "virtua": "^0.41.3"
   },
