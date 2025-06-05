@@ -90,6 +90,9 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
       data-key={image().filename}
       {...tap.bind}
       {...others}
+      onTransitionEnd={() => {
+        elRef.style.zIndex = 'auto';
+      }}
     >
       <div class={`relative w-full h-full group${tap.overlayActive() ? ' overlay-active' : ''}`}>
         {image().blurhashGradient && !isLoaded() && (
