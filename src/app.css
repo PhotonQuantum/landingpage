@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "@catppuccin/tailwindcss/mocha.css";
 @plugin "@tailwindcss/typography";
-@plugin "tailwindcss-spring";
 @config "../tailwind.config.cjs";
 
 @source inline("text-subtle text-gray-500 text-lime-700 font-normal");
@@ -35,15 +34,6 @@ body {
 .fade-enter,
 .fade-exit-to {
   opacity: 0;
-}
-
-@utility gallery-transition {
-  @supports (transition-timing-function: linear(0, 1)) {
-    @apply spring-bounce-0 spring-duration-300;
-  }
-  @supports not (transition-timing-function: linear(0, 1)) {
-    @apply ease-[cubic-bezier(0.22,1,0.36,1)] duration-600;
-  }
 }
 
 @utility link {

@@ -141,7 +141,6 @@ export function GalleryGroup(props: GalleryGroupProps) {
     if (container && typeof window !== 'undefined') {
       const localLayoutMap = layoutMap();
       requestAnimationFrame(() => {
-        // NOTE this is now only used to move animated elements to top. The actual animation is now done via css transition.
         animatePositions(container, localLayoutMap);
       });
     }

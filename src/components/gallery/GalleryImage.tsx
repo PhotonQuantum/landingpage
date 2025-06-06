@@ -1,4 +1,4 @@
-import { Component, createEffect, createMemo, createSignal, For, onMount, Show, splitProps } from "solid-js";
+import { Component, createMemo, createSignal, For, Show, splitProps } from "solid-js";
 import type { JSX } from "solid-js";
 import { Picture } from "vite-imagetools";
 import { LayoutBox } from "~/lib/gallery/types";
@@ -9,7 +9,6 @@ import SvgStopwatch from "@tabler/icons/outline/stopwatch.svg"
 import { useTapOrClick } from "~/lib/gallery/useTapOrClick";
 import { createLocale } from "~/lib/gallery/createLocale";
 import { dateWithOffset } from "~/lib/gallery/utils";
-import { makeTimer } from "@solid-primitives/timer";
 
 const dateOptions: Intl.DateTimeFormatOptions = {
   month: '2-digit', day: '2-digit',
@@ -59,40 +58,29 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
     return `1/${Math.round(1 / exposure)}`;
   }
 
-  let elRef!: HTMLDivElement;
-
-  // NOTE pretty weird, this is the only way to get transition of width and height to work
-  createEffect(() => {
-    elRef.getBoundingClientRect();
-    elRef.style.setProperty("position", mode() === 'justified' ? 'absolute' : 'static');
-    elRef.style.setProperty("left", mode() === 'justified' ? `${box().left}px` : 'auto');
-    elRef.style.setProperty("top", mode() === 'justified' ? `${box().top}px` : 'auto');
-    elRef.style.setProperty("width", mode() === 'justified' ? `${box().width}px` : '100%');
-    elRef.style.setProperty("height", mode() === 'justified' ? `${box().height}px` : 'auto');
-    elRef.getBoundingClientRect();
-  })
-
-  const [allowTransition, setAllowTransition] = createSignal(false);
-  onMount(() => {
-    // NOTE Hack: disable transition during initial layout
-    makeTimer(() => {
-      setAllowTransition(true);
-    }, 100, setTimeout);
-  })
+  // Style for the image container
+  const containerStyle = (): JSX.CSSProperties =>
+    mode() === 'justified'
+      ? {
+        position: 'absolute',
+        left: `${box().left}px`,
+        top: `${box().top}px`,
+        width: `${box().width}px`,
+        height: `${box().height}px`,
+      }
+      : {
+        position: 'static',
+        width: '100%',
+      };
 
   return (
     <div
-      ref={(el) => {
-        tap.setRef(el);
-        elRef = el;
-      }}
-      class={`gallery-item overflow-hidden rounded-xs cursor-pointer${mode() === 'justified' ? ' absolute' : ' relative aspect-[4/3]'} ${props.class} ${props.willChange ? 'will-change-transform' : ''} ${allowTransition() ? 'motion-safe:transition-all motion-safe:gallery-transition' : 'transition-none'}`}
+      ref={tap.setRef}
+      class={`gallery-item overflow-hidden rounded-xs cursor-pointer ${mode() === 'justified' ? 'absolute' : 'relative aspect-[4/3]'} ${props.class} ${props.willChange ? 'will-change-transform' : ''}`}
       data-key={image().filename}
+      style={containerStyle()}
       {...tap.bind}
       {...others}
-      onTransitionEnd={() => {
-        elRef.style.zIndex = 'auto';
-      }}
     >
       <div class={`relative w-full h-full group${tap.overlayActive() ? ' overlay-active' : ''}`}>
         {image().blurhashGradient && !isLoaded() && (
