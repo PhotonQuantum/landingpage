@@ -1,4 +1,4 @@
-import { Action, createGesture, dragAction, Gesture, GestureHandlers, hoverAction, pinchAction, UserGestureConfig, wheelAction } from "@use-gesture/vanilla";
+import { Action, Bounds, createGesture, dragAction, Gesture, GestureHandlers, hoverAction, pinchAction, rubberbandIfOutOfBounds, UserGestureConfig, wheelAction } from "@use-gesture/vanilla";
 import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, Accessor, untrack, onMount, JSX, splitProps } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
 import { ImagePointer } from "~/lib/gallery/pointer";
@@ -10,6 +10,7 @@ import { makeTimer } from "@solid-primitives/timer";
 import { createDerivedSpring } from "@solid-primitives/spring";
 import GalleryThumbnails from "./GalleryThumbnails";
 import { lock, unlock } from "tua-body-scroll-lock";
+import { clamp } from "@solid-primitives/utils";
 
 export interface GalleryPopupProps extends Omit<JSX.HTMLAttributes<HTMLDivElement>, "onSelect"> {
   pointer: ImagePointer | undefined;
@@ -93,12 +94,15 @@ interface GestureManagerOutput {
 interface WheelMemo {
   skip: boolean;
   origin: [number, number];
+  bounds: { left: number, top: number, right: number, bottom: number }
 }
 
-const initWheelMemo = (origin: [number, number]) => {
+const initWheelMemo = (origin: [number, number], container: HTMLElement, target: HTMLElement) => {
+  const bounds = calcPanBounds(container, target);
   return {
     skip: false,
     origin: origin,
+    bounds: bounds,
   }
 }
 
@@ -109,11 +113,6 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
     y: 0,
     hovering: false,
   });
-  // NOTE the whole block wheel approach does not work well.
-  // Alternative solution:
-  // 1. Filtered wheel event for scale = 1, only process swipe events.
-  // 2. No special handling for scale > 1.
-  // 3. Reliable bound calculation. Manual rubberbanding if needed.
   createGestureHandler({
     ref: props.areaRef,
     actions: [dragAction, pinchAction, hoverAction, wheelAction],
@@ -146,8 +145,8 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
             const bounds = calcPanBounds(container!, target!);
             return {
               ...prev,
-              x: Math.max(bounds.left, Math.min(bounds.right, prev.x)),
-              y: Math.max(bounds.top, Math.min(bounds.bottom, prev.y)),
+              x: clamp(prev.x, bounds.left, bounds.right),
+              y: clamp(prev.y, bounds.top, bounds.bottom),
             }
           });
         },
@@ -174,15 +173,17 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
             const bounds = calcPanBounds(container!, target!);
             return {
               ...prev,
-              x: Math.max(bounds.left, Math.min(bounds.right, prev.x)),
-              y: Math.max(bounds.top, Math.min(bounds.bottom, prev.y)),
+              x: clamp(prev.x, bounds.left, bounds.right),
+              y: clamp(prev.y, bounds.top, bounds.bottom),
             }
           });
         },
         onWheel: ({ first, last, pinching, velocity: [v], movement: [x, y], memo: memo_ }) => {
           let memo: WheelMemo = memo_;
           setState((prev) => {
-            if (first) memo = initWheelMemo([prev.x, prev.y]);
+            if (first) {
+              memo = initWheelMemo([prev.x, prev.y], container!, target!);
+            }
             if (pinching || memo.skip) return prev;
 
             if (prev.scale <= 1 && !last) {
@@ -199,19 +200,21 @@ const createGestureManager = (props: GestureManagerProps): GestureManagerOutput 
 
             return {
               ...prev,
-              x: memo.origin[0] - x,
-              y: memo.origin[1] - y,
+              x: rubberbandIfOutOfBounds(memo.origin[0] - x, memo.bounds.left, memo.bounds.right),
+              y: rubberbandIfOutOfBounds(memo.origin[1] - y, memo.bounds.top, memo.bounds.bottom),
             }
           });
           return memo;
         },
         onWheelEnd: () => {
-          const bounds = calcPanBounds(container!, target!);
-          setState((prev) => ({
-            ...prev,
-            x: Math.max(bounds.left, Math.min(bounds.right, prev.x)),
-            y: Math.max(bounds.top, Math.min(bounds.bottom, prev.y)),
-          }));
+          setState((prev) => {
+            const bounds = calcPanBounds(container!, target!);
+            return {
+              ...prev,
+              x: clamp(prev.x, bounds.left, bounds.right),
+              y: clamp(prev.y, bounds.top, bounds.bottom),
+            }
+          });
         },
         onHover: ({ hovering }) => {
           setState((prev) => ({
