@@ -8,7 +8,7 @@ import { ExifMetadata, GalleryGroup as GalleryGroupType, ImageWithBlurhash } fro
 import { GalleryImage } from "./gallery/GalleryImage";
 import { GalleryHeader } from "./gallery/GalleryHeader";
 import { useGalleryAnimation } from "~/lib/gallery/useGalleryAnimation";
-import { createStore, reconcile } from "solid-js/store";
+import { createStore, reconcile, unwrap } from "solid-js/store";
 import { Picture } from "vite-imagetools";
 import { TransitionGroup } from "solid-transition-group";
 import { Dynamic } from "solid-js/web";
@@ -84,7 +84,7 @@ const galleryReducer = (
   const setIsExpanded_ = (isExpanded: boolean) => {
     batch(() => {
       setIsExpanded(isExpanded);
-      const newDisplayImages = reconcile(isExpanded ? images : sortImagesByFeatured(images, featuredSet), { key: "filename", merge: true })(displayImages);
+      const newDisplayImages = reconcile(isExpanded ? images : sortImagesByFeatured(images, featuredSet), { key: "filename", merge: true })(unwrap(displayImages));
       const newLayout = layout_(isExpanded, newDisplayImages, doubleRowSet());
       setDisplayImages(newDisplayImages);
       setVisibleImages(reconcile(newDisplayImages.slice(0, newLayout.boxes.length), { key: "filename", merge: true }));
