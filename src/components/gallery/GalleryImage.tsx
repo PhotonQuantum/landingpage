@@ -91,24 +91,20 @@ export const GalleryImage: Component<GalleryImageProps> = (props) => {
             }}
           />
         )}
-        <picture
+        <div
           class={`absolute inset-0 w-full h-full ${isLoaded() ? 'opacity-100' : 'opacity-0'}`}
         >
-          <For each={Object.entries(image().sources)}>
-            {([format, srcset]: [string, string]) => (
-              <source srcset={srcset} type={`image/${format}`} />
-            )}
-          </For>
           <img
-            src={image().img.src}
             sizes={`${box().width}px`}
+            srcset={image().sources.webp}
+            src={image().img.src}
             alt={image().filename}
             class="absolute inset-0 w-full h-full object-cover rounded-xs transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
             decoding="async"
             onLoad={() => setIsLoaded(true)}
           />
-        </picture>
+        </div>
         {/* Gradient overlay as sibling */}
         <div class={`absolute inset-0 rounded-xs pointer-events-none opacity-0 group-hover:opacity-100 ${tap.overlayActive() ? '!opacity-100' : ''} motion-safe:transition-opacity motion-safe:duration-200 motion-reduce:transition-none bg-gradient-to-t from-black/90 via-black/10 via-50% to-black/0 to-100%`}></div>
         {/* Metadata overlay as sibling */}

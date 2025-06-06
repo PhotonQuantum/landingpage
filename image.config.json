@@ -32,7 +32,7 @@
       "h": [275, 412.5, 550, 825],
       "quality": 80,
       "withoutEnlargement": true,
-      "format": ["webp", "jpeg"],
+      "format": "webp",
       "as": ["picture"]
     }
   },
