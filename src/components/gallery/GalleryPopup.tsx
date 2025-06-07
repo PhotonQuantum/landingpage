@@ -35,6 +35,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   let scrollRefs: HTMLDivElement[] = [];
 
   const [showTooltip, setShowTooltip] = createSignal(false);
+  const [isLoading, setIsLoading] = createSignal(false);
 
   const currentImage = createMemo(() => {
     const p = props.pointer;
@@ -101,6 +102,12 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
             imageItems={currentImageItems()}
             class={`w-full h-full bg-no-repeat bg-center bg-cover touch-none select-none`}
             onBoundingRectChange={setImgBounds}
+            onLoadingChange={setIsLoading}
+          />
+          {/* Loading indicator */}
+          <div 
+            class={`absolute bottom-4 right-4 w-6 h-6 border-2 border-white/30 border-t-white rounded-full motion-safe:animate-spin ${isLoading() ? 'opacity-100' : 'opacity-0'}`}
+            style={{ "transition": "opacity 0.2s" }}
           />
           {/* Left navigation */}
           <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition-opacity z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={props.onPrev}>

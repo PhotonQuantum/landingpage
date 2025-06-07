@@ -3,12 +3,14 @@ import { GestureManagerState } from "~/lib/gallery/gesture";
 import { ViewerImageItem } from "~/data/galleryData";
 import { isServer } from "solid-js/web";
 import { createElementBounds } from "@solid-primitives/bounds";
+import { createStore } from "solid-js/store";
 
 export interface WebGLViewerProps extends Omit<JSX.HTMLAttributes<HTMLCanvasElement>, "style"> {
   containerRef: Accessor<EventTarget & HTMLElement | undefined>;
   geometry: GestureManagerState;
   imageItems: ViewerImageItem[];
   onBoundingRectChange?: (rect: DOMRect | null) => void;
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
 // WebGL shader programs
@@ -64,8 +66,8 @@ function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fra
 }
 
 export default function WebGLViewer(props: WebGLViewerProps) {
-  const [local, rest] = splitProps(props, ["geometry", "imageItems", "containerRef", "onBoundingRectChange"]);
-  
+  const [local, rest] = splitProps(props, ["geometry", "imageItems", "containerRef", "onBoundingRectChange", "onLoadingChange"]);
+
   const [canvas, setCanvas] = createSignal<HTMLCanvasElement>();
   let gl: WebGLRenderingContext;
   let program: WebGLProgram;
@@ -76,10 +78,10 @@ export default function WebGLViewer(props: WebGLViewerProps) {
   let matrixLocation: WebGLUniformLocation;
   let animationFrameId: number;
   let needsRender = true;
-  
-  // Texture management
-  const textures = new Map<string, WebGLTexture>();
-  const loadingTextures = new Map<string, Promise<WebGLTexture>>();
+
+  // Texture management using SolidJS stores
+  const [textures, setTextures] = createStore<Record<string, WebGLTexture>>({});
+  const [loadingTextures, setLoadingTextures] = createStore<Record<string, Promise<WebGLTexture>>>({});
 
   // Calculate required image size based on container and scale
   const containerBounds = createElementBounds(local.containerRef);
@@ -125,8 +127,8 @@ export default function WebGLViewer(props: WebGLViewerProps) {
 
   // Load texture asynchronously
   const loadTexture = async (src: string): Promise<WebGLTexture> => {
-    if (textures.has(src)) return textures.get(src)!;
-    if (loadingTextures.has(src)) return loadingTextures.get(src)!;
+    if (src in textures) return textures[src];
+    if (src in loadingTextures) return loadingTextures[src];
     
     const loadPromise = new Promise<WebGLTexture>((resolve) => {
       const img = new Image();
@@ -151,7 +153,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
           gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
         }
         
-        textures.set(src, texture);
+        setTextures(src, texture);
         needsRender = true;
         resolve(texture);
       };
@@ -161,15 +163,44 @@ export default function WebGLViewer(props: WebGLViewerProps) {
         const fallbackTexture = gl.createTexture()!;
         gl.bindTexture(gl.TEXTURE_2D, fallbackTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
-        textures.set(src, fallbackTexture);
+        setTextures(src, fallbackTexture);
         needsRender = true;
         resolve(fallbackTexture);
       };
       img.src = src;
     });
     
-    loadingTextures.set(src, loadPromise);
+    setLoadingTextures(src, loadPromise);
     return loadPromise;
+  };
+
+  // Find nearest available texture
+  const findNearestAvailableTexture = (currentImage: ViewerImageItem): WebGLTexture | undefined => {
+    const items = local.imageItems;
+    const currentIndex = items.findIndex(item => item.src === currentImage.src);
+    if (currentIndex === -1) return undefined;
+    
+    let searchDistance = 1;
+    
+    while (searchDistance < items.length) {
+      // Check lower resolution
+      const lowerIndex = currentIndex - searchDistance;
+      if (lowerIndex >= 0) {
+        const lowerTexture = textures[items[lowerIndex].src];
+        if (lowerTexture) return lowerTexture;
+      }
+      
+      // Check higher resolution
+      const higherIndex = currentIndex + searchDistance;
+      if (higherIndex < items.length) {
+        const higherTexture = textures[items[higherIndex].src];
+        if (higherTexture) return higherTexture;
+      }
+      
+      searchDistance++;
+    }
+    
+    return undefined;
   };
 
   // Initialize WebGL
@@ -178,28 +209,28 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     if (!canvasElement) return;
 
     // Create WebGL context
-    gl = canvasElement.getContext('webgl', { 
+    gl = canvasElement.getContext('webgl', {
       alpha: true,
       antialias: true,
       preserveDrawingBuffer: true
     })!;
-    
+
     // Create shaders and program
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
     program = createProgram(gl, vertexShader, fragmentShader);
-    
+
     // Create buffers
     positionBuffer = gl.createBuffer()!;
     const positions = new Float32Array([
       -1, -1,
-       1, -1,
-      -1,  1,
-       1,  1,
+      1, -1,
+      -1, 1,
+      1, 1,
     ]);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-    
+
     // Create texture coordinates (flipped Y to match WebGL coordinate system)
     const texCoords = new Float32Array([
       0, 0,  // bottom-left
@@ -210,25 +241,25 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     texCoordBuffer = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
-    
+
     // Get attribute and uniform locations
     positionLocation = gl.getAttribLocation(program, 'a_position');
     texCoordLocation = gl.getAttribLocation(program, 'a_texCoord');
     matrixLocation = gl.getUniformLocation(program, 'u_matrix')!;
-    
+
     // Set up attributes (only need to do this once)
     gl.useProgram(program);
-    
+
     // Set up position attribute
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.enableVertexAttribArray(positionLocation);
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-    
+
     // Set up texture coordinate attribute
     gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
     gl.enableVertexAttribArray(texCoordLocation);
     gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
-    
+
     // Start render loop
     animationFrameId = requestAnimationFrame(render);
   });
@@ -236,10 +267,10 @@ export default function WebGLViewer(props: WebGLViewerProps) {
   // Render loop
   const render = () => {
     if (!gl || !program) return;
-    
+
     const canvasElement = canvas();
     if (!canvasElement) return;
-    
+
     const container = local.containerRef();
     if (!container) return;
 
@@ -248,17 +279,17 @@ export default function WebGLViewer(props: WebGLViewerProps) {
       animationFrameId = requestAnimationFrame(render);
       return;
     }
-    
+
     // Update canvas size
     const dpr = window.devicePixelRatio || 1;
     canvasElement.width = container.clientWidth * dpr;
     canvasElement.height = container.clientHeight * dpr;
     gl.viewport(0, 0, canvasElement.width, canvasElement.height);
-    
+
     // Get current image dimensions
     const currentImage = selectedImage();
     if (!currentImage) return;
-    
+
     // Calculate aspect ratios
     const containerAspect = container.clientWidth / container.clientHeight;
     const imageAspect = currentImage.width / currentImage.height;
@@ -267,11 +298,11 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     const x = local.geometry.x * dpr;
     const y = local.geometry.y * dpr;
     const scale = local.geometry.scale;
-    
+
     // Calculate scale factors to maintain aspect ratio
     let scaleX = scale;
     let scaleY = scale;
-    
+
     if (imageAspect > containerAspect) {
       // Image is wider than container
       scaleY = scale * (containerAspect / imageAspect);
@@ -279,7 +310,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
       // Image is taller than container
       scaleX = scale * (imageAspect / containerAspect);
     }
-    
+
     // Calculate transformation matrix with aspect ratio preservation
     const matrix = new Float32Array([
       scaleX, 0, 0, 0,
@@ -287,37 +318,21 @@ export default function WebGLViewer(props: WebGLViewerProps) {
       0, 0, 1, 0,
       x / (canvasElement.width / 2), -y / (canvasElement.height / 2), 0, 1,
     ]);
-    
+
     // Clear and setup
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    
+
     // Set matrix uniform
     gl.uniformMatrix4fv(matrixLocation, false, matrix);
-    
+
     // Draw current texture
-    const texture = textures.get(currentImage.src);
+    const texture = textures[currentImage.src] || findNearestAvailableTexture(currentImage);
+    
     if (texture) {
       gl.bindTexture(gl.TEXTURE_2D, texture);
-      
-      // Adjust texture filtering based on relative scale
-      const displayWidth = container.clientWidth * scaleX;
-      const displayHeight = container.clientHeight * scaleY;
-      const relativeScaleX = displayWidth / currentImage.width;
-      const relativeScaleY = displayHeight / currentImage.height;
-      const relativeScale = Math.max(relativeScaleX, relativeScaleY);
-      
-      if (relativeScale > 1.0) {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      } else if (relativeScale < 0.5) {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      } else {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      }
-      
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
     
@@ -339,6 +354,17 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     if (next) loadTexture(next.src);
   });
 
+  // Track loading status
+  createEffect(() => {
+    const currentImage = selectedImage();
+    if (!currentImage) return;
+
+    const isOptimalTextureLoaded = currentImage.src in textures;
+    const isOptimalTextureLoading = currentImage.src in loadingTextures;
+    
+    local.onLoadingChange?.(!isOptimalTextureLoaded && isOptimalTextureLoading);
+  });
+
   // Function to get the rendered image's bounding rect
   const getBoundingClientRect = (): DOMRect | null => {
     const currentImage = selectedImage();
@@ -352,7 +378,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     // Calculate scale factors to maintain aspect ratio
     let scaleX = local.geometry.scale;
     let scaleY = local.geometry.scale;
-    
+
     if (imageAspect > containerAspect) {
       // Image is wider than container
       scaleY = local.geometry.scale * (containerAspect / imageAspect);
@@ -388,7 +414,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
       cancelAnimationFrame(animationFrameId);
     }
     // Clean up WebGL resources
-    textures.forEach(texture => gl.deleteTexture(texture));
+    Object.values(textures).forEach(texture => gl.deleteTexture(texture));
     gl.deleteBuffer(positionBuffer);
     gl.deleteBuffer(texCoordBuffer);
     gl.deleteProgram(program);
