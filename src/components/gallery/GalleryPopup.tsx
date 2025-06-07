@@ -337,6 +337,53 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
     return img.width / img.height;
   });
 
+  // Calculate required image size based on container and scale
+  const requiredImageSize = createMemo(() => {
+    const container = containerRef();
+    if (!container) return { width: 0, height: 0 };
+    
+    const { width: containerWidth, height: containerHeight } = container.getBoundingClientRect();
+    const scale = geometry().scale;
+    
+    // Calculate required size to fill the container at current scale
+    const requiredWidth = containerWidth * scale;
+    const requiredHeight = containerHeight * scale;
+    
+    return { width: requiredWidth, height: requiredHeight };
+  });
+
+  // Select the best image based on required size
+  const selectedImage = createMemo(() => {
+    const items = currentImageItems();
+    if (!items.length) return null;
+    
+    const { width: requiredWidth, height: requiredHeight } = requiredImageSize();
+    const requiredSize = Math.max(requiredWidth, requiredHeight);
+    
+    // Find the smallest image that's larger than required size
+    let bestImage = items[items.length - 1]; // Default to largest image
+    for (const item of items) {
+      const itemSize = Math.max(item.width, item.height);
+      if (itemSize >= requiredSize) {
+        bestImage = item;
+        break;
+      }
+    }
+    
+    return bestImage;
+  });
+
+  // Log selected image dimensions when they change
+  createEffect(() => {
+    const image = selectedImage();
+    if (image) {
+      console.log('Selected image:', {
+        width: image.width,
+        height: image.height
+      });
+    }
+  });
+
   createEffect(() => {
     currentImage(); // dependency
     setGeometry({ scale: 1, x: 0, y: 0 });
@@ -366,9 +413,9 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
         <div class="relative grow w-full flex justify-center items-center overflow-hidden" ref={setContainerRef}>
           <img
             ref={setImgRef}
-            src={currentImageItems()[currentImageItems().length - 1]?.src || ""}
-            width={currentImageItems()[currentImageItems().length - 1]?.width || 0}
-            height={currentImageItems()[currentImageItems().length - 1]?.height || 0}
+            src={selectedImage()?.src || ""}
+            width={selectedImage()?.width || 0}
+            height={selectedImage()?.height || 0}
             alt="main"
             draggable={false}
             class={`${imgAspectRatio() > containerAspectRatio() ? "w-full h-auto" : "h-full w-auto"} bg-no-repeat bg-center bg-cover touch-none select-none`}
