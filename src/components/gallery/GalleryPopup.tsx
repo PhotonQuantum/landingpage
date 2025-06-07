@@ -1,16 +1,14 @@
 import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, onMount, JSX, splitProps } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
 import { ImagePointer } from "~/lib/gallery/pointer";
-import { createElementSize } from "@solid-primitives/resize-observer";
 import { createGestureManager } from "~/lib/gallery/gesture";
 
 import SvgChevronLeft from "@tabler/icons/outline/chevron-left.svg";
 import SvgChevronRight from "@tabler/icons/outline/chevron-right.svg";
-import { makeTimer } from "@solid-primitives/timer";
 import { createDerivedSpring } from "@solid-primitives/spring";
 import GalleryThumbnails from "./GalleryThumbnails";
 import { lock, unlock } from "tua-body-scroll-lock";
-import ViewerImage from "./ViewerImage";
+import WebGLViewer from "./WebGLViewer";
 
 export interface GalleryPopupProps extends Omit<JSX.HTMLAttributes<HTMLDivElement>, "onSelect"> {
   pointer: ImagePointer | undefined;
@@ -20,6 +18,13 @@ export interface GalleryPopupProps extends Omit<JSX.HTMLAttributes<HTMLDivElemen
   onSelect: (pointer: ImagePointer) => void;
 }
 
+const oneShotTimer = (fn: () => void, delay: number) => {
+  const timer = setTimeout(() => {
+    fn();
+    clearTimeout(timer);
+  }, delay);
+};
+
 export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   const [_, others] = splitProps(props, ["pointer", "onPrev", "onNext", "onClose", "onSelect"]);
 
@@ -28,9 +33,6 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   const [imgRef, setImgRef] = createSignal<EventTarget & HTMLImageElement | undefined>(undefined);
   const [containerRef, setContainerRef] = createSignal<EventTarget & HTMLElement | undefined>(undefined);
   let scrollRefs: HTMLDivElement[] = [];
-
-  const containerSize = createElementSize(containerRef);
-  const containerAspectRatio = createMemo(() => (containerSize.width ?? 1) / (containerSize.height ?? 1));
 
   const [showTooltip, setShowTooltip] = createSignal(false);
 
@@ -45,11 +47,14 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   // Helper to show tooltip for a few seconds
   const triggerTooltip = () => {
     setShowTooltip(true);
-    makeTimer(() => setShowTooltip(false), 4000, setTimeout);
+    oneShotTimer(() => setShowTooltip(false), 4000);
   };
+
+  const [imgBounds, setImgBounds] = createSignal<DOMRect | null>(null);
 
   const { state: geometry_, setState: setGeometry, hovering } = createGestureManager({
     ref: imgRef,
+    imgBounds: imgBounds,
     containerRef: containerRef,
     areaRef: containerRef,
     onSwipe: (direction) => {
@@ -60,12 +65,6 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   });
   const geometry = createDerivedSpring(geometry_, {
     stiffness: 0.3,
-  });
-
-  const imgAspectRatio = createMemo(() => {
-    const img = currentImageItems()[currentImageItems().length - 1];
-    if (!img) return 1;
-    return img.width / img.height;
   });
 
   createEffect(() => {
@@ -95,13 +94,13 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
           Tip: Use <span class="font-bold">←/→</span> to switch images. Trackpad horizontal scroll is not always reliable.
         </div>
         <div class="relative grow w-full flex justify-center items-center overflow-hidden touch-none select-none" ref={setContainerRef}>
-          <ViewerImage
+          <WebGLViewer
             ref={setImgRef}
             containerRef={containerRef}
             geometry={geometry()}
             imageItems={currentImageItems()}
-            draggable={false}
-            class={`${imgAspectRatio() > containerAspectRatio() ? "w-full h-auto" : "h-full w-auto"} bg-no-repeat bg-center bg-cover touch-none select-none`}
+            class={`w-full h-full bg-no-repeat bg-center bg-cover touch-none select-none`}
+            onBoundingRectChange={setImgBounds}
           />
           {/* Left navigation */}
           <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition-opacity z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={props.onPrev}>

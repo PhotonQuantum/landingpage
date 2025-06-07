@@ -10,11 +10,11 @@
     "deploy-assets": "S3_BUCKET=$S3_ASSETS_BUCKET node scripts/upload-assets.js .images/assets images"
   },
   "dependencies": {
+    "@solid-primitives/bounds": "^0.1.1",
     "@solid-primitives/intersection-observer": "^2.2.1",
     "@solid-primitives/media": "^2.3.1",
     "@solid-primitives/resize-observer": "^2.1.1",
     "@solid-primitives/spring": "^0.1.1",
-    "@solid-primitives/timer": "^1.4.1",
     "@solid-primitives/utils": "^6.3.1",
     "@use-gesture/vanilla": "^10.3.1",
     "justified-layout": "^4.1.0",

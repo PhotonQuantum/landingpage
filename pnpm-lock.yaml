@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@solid-primitives/bounds':
+        specifier: ^0.1.1
+        version: 0.1.1(solid-js@1.9.7)
       '@solid-primitives/intersection-observer':
         specifier: ^2.2.1
         version: 2.2.1(solid-js@1.9.7)
@@ -20,9 +23,6 @@ importers:
       '@solid-primitives/spring':
         specifier: ^0.1.1
         version: 0.1.1(solid-js@1.9.7)
-      '@solid-primitives/timer':
-        specifier: ^1.4.1
-        version: 1.4.1(solid-js@1.9.7)
       '@solid-primitives/utils':
         specifier: ^6.3.1
         version: 6.3.1(solid-js@1.9.7)
@@ -1795,6 +1795,11 @@ packages:
     resolution: {integrity: sha512-4QvC49HTteI1gfemu0I1syWovJgPvGn7CVUoN9ZFkdvr/cCFkrEL7qNCdx/2eICqDWEGnnr68oMdSIPCLAriSQ==}
     engines: {node: '>=18.0.0'}
 
+  '@solid-primitives/bounds@0.1.1':
+    resolution: {integrity: sha512-b4s8JClkRq2RQlU3K4qeCVASdtct5gfg3HNfWGeD7oPjWlSkp2RyDHJwt9ZtPaXOEOIHhNBbLgjtLax/4B6VUQ==}
+    peerDependencies:
+      solid-js: ^1.6.12
+
   '@solid-primitives/event-listener@2.4.1':
     resolution: {integrity: sha512-Xc/lBCeuh9LwzR4lYbMDtopwWK7N9b4o+FmI4uoI8DOtVGYi0Ip20DG8PtwHk+g31lHgvwtFFVKfnUx2UaqZJg==}
     peerDependencies:
@@ -1832,11 +1837,6 @@ packages:
 
   '@solid-primitives/static-store@0.1.1':
     resolution: {integrity: sha512-daXWvpLjd+4hbYdGaaEJ2kKFuFhshvfIBFLveW7mfk2BWHl9lGQVwUuExp3qllkK9ONA9p+5D2cpwBQosv8odQ==}
-    peerDependencies:
-      solid-js: ^1.6.12
-
-  '@solid-primitives/timer@1.4.1':
-    resolution: {integrity: sha512-M7xrZ/rIq2qEas3fZHLoKQjvseRgNH5IGOl7ZkDxlSJDa5RxAcnzdNPmJiMZH/9+PWrViCrnO0RxLs8w/YIOpg==}
     peerDependencies:
       solid-js: ^1.6.12
 
@@ -6898,6 +6898,14 @@ snapshots:
       '@smithy/types': 4.3.1
       tslib: 2.8.1
 
+  '@solid-primitives/bounds@0.1.1(solid-js@1.9.7)':
+    dependencies:
+      '@solid-primitives/event-listener': 2.4.1(solid-js@1.9.7)
+      '@solid-primitives/resize-observer': 2.1.1(solid-js@1.9.7)
+      '@solid-primitives/static-store': 0.1.1(solid-js@1.9.7)
+      '@solid-primitives/utils': 6.3.1(solid-js@1.9.7)
+      solid-js: 1.9.7
+
   '@solid-primitives/event-listener@2.4.1(solid-js@1.9.7)':
     dependencies:
       '@solid-primitives/utils': 6.3.1(solid-js@1.9.7)
@@ -6941,10 +6949,6 @@ snapshots:
   '@solid-primitives/static-store@0.1.1(solid-js@1.9.7)':
     dependencies:
       '@solid-primitives/utils': 6.3.1(solid-js@1.9.7)
-      solid-js: 1.9.7
-
-  '@solid-primitives/timer@1.4.1(solid-js@1.9.7)':
-    dependencies:
       solid-js: 1.9.7
 
   '@solid-primitives/transition-group@1.1.1(solid-js@1.9.7)':

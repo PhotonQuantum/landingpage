@@ -48,6 +48,7 @@ export const createGestureHandler = (prop: GestureInput) => {
 
 export interface GestureManagerProps {
   ref: Accessor<HTMLElement | undefined>;
+  imgBounds: Accessor<DOMRect | null>;
   containerRef: Accessor<HTMLElement | undefined>;
   areaRef: Accessor<EventTarget | undefined>;
   onSwipe: (direction: "left" | "right") => void;
@@ -79,8 +80,8 @@ interface WheelMemo {
   bounds: { left: number, top: number, right: number, bottom: number }
 }
 
-const initWheelMemo = (origin: [number, number], container: HTMLElement, target: HTMLElement) => {
-  const bounds = calcPanBounds(container, target);
+const initWheelMemo = (origin: [number, number], container: HTMLElement, imgBounds: DOMRect) => {
+  const bounds = calcPanBounds(container, imgBounds);
   return {
     skip: false,
     origin: origin,
@@ -88,8 +89,8 @@ const initWheelMemo = (origin: [number, number], container: HTMLElement, target:
   }
 }
 
-const panSwipeIntention = (target: HTMLElement, x: number, y: number) => {
-  const { width: tWidth } = target.getBoundingClientRect();
+const panSwipeIntention = (imgBounds: DOMRect, x: number, y: number) => {
+  const { width: tWidth } = imgBounds;
   if (x > tWidth / 2) {
     return "right";
   } else if (x < -tWidth / 2) {
@@ -99,9 +100,9 @@ const panSwipeIntention = (target: HTMLElement, x: number, y: number) => {
   }
 }
 
-const calcPanBounds = (container: HTMLElement, target: HTMLElement) => {
+const calcPanBounds = (container: HTMLElement, imgBounds: DOMRect) => {
   const { width, height } = container.getBoundingClientRect();
-  const { width: tWidth, height: tHeight } = target.getBoundingClientRect();
+  const { width: tWidth, height: tHeight } = imgBounds;
   return {
     left: Math.min(0, (width - tWidth) / 2),
     top: Math.min(0, (height - tHeight) / 2),
@@ -122,7 +123,6 @@ export const createGestureManager = (props: GestureManagerProps): GestureManager
     actions: [dragAction, pinchAction, hoverAction, wheelAction],
     handlers: () => {
       const container = props.containerRef();
-      const target = props.ref();
       return ({
         onDrag: ({ pinching, cancel, swipe: [swipeX], offset: [x, y] }) => {
           if (pinching) {
@@ -142,11 +142,11 @@ export const createGestureManager = (props: GestureManagerProps): GestureManager
         },
         onDragEnd: () => {
           setState((prev) => {
-            const swipe = panSwipeIntention(target!, prev.x, prev.y);
+            const swipe = panSwipeIntention(props.imgBounds()!, prev.x, prev.y);
             if (prev.scale <= 1 && swipe) {
               props.onSwipe(swipe);
             }
-            const bounds = calcPanBounds(container!, target!);
+            const bounds = calcPanBounds(container!, props.imgBounds()!);
             return {
               ...prev,
               x: clamp(prev.x, bounds.left, bounds.right),
@@ -156,7 +156,7 @@ export const createGestureManager = (props: GestureManagerProps): GestureManager
         },
         onPinch: ({ origin: [ox, oy], first, movement: [ms], offset: [s], memo }) => {
           if (first) {
-            const { width, height, x, y } = target!.getBoundingClientRect()
+            const { width, height, x, y } = props.imgBounds()!
             const tx = ox - (x + width / 2)
             const ty = oy - (y + height / 2)
             memo = [state().x, state().y, tx, ty]
@@ -174,7 +174,7 @@ export const createGestureManager = (props: GestureManagerProps): GestureManager
         },
         onPinchEnd: () => {
           setState((prev) => {
-            const bounds = calcPanBounds(container!, target!);
+            const bounds = calcPanBounds(container!, props.imgBounds()!);
             return {
               ...prev,
               x: clamp(prev.x, bounds.left, bounds.right),
@@ -186,7 +186,7 @@ export const createGestureManager = (props: GestureManagerProps): GestureManager
           let memo: WheelMemo = memo_;
           setState((prev) => {
             if (first) {
-              memo = initWheelMemo([prev.x, prev.y], container!, target!);
+              memo = initWheelMemo([prev.x, prev.y], container!, props.imgBounds()!);
             }
             if (pinching || memo.skip) return prev;
 
@@ -212,7 +212,7 @@ export const createGestureManager = (props: GestureManagerProps): GestureManager
         },
         onWheelEnd: () => {
           setState((prev) => {
-            const bounds = calcPanBounds(container!, target!);
+            const bounds = calcPanBounds(container!, props.imgBounds()!);
             return {
               ...prev,
               x: clamp(prev.x, bounds.left, bounds.right),
@@ -235,13 +235,12 @@ export const createGestureManager = (props: GestureManagerProps): GestureManager
     },
     config: () => {
       const container = props.containerRef();
-      const target = props.ref();
 
       return {
         drag: {
           from: () => [untrack(state).x, untrack(state).y],
           bounds: () => {
-            const bounds = calcPanBounds(container!, target!);
+            const bounds = calcPanBounds(container!, props.imgBounds()!);
             if (untrack(state).scale <= 1) {
               return {
                 top: bounds.top,

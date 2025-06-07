@@ -1,5 +1,5 @@
 import { createElementSize } from "@solid-primitives/resize-observer";
-import { Accessor, createEffect, createMemo, JSX, splitProps } from "solid-js";
+import { Accessor, createEffect, createMemo, createSignal, JSX, splitProps } from "solid-js";
 import { ViewerImageItem } from "~/data/galleryData";
 import { GestureManagerState } from "~/lib/gallery/gesture";
 
@@ -11,6 +11,9 @@ export interface ViewerImageProps extends Omit<JSX.HTMLAttributes<HTMLImageEleme
 
 export default function ViewerImage(props: ViewerImageProps) {
   const [local, rest] = splitProps(props, ["geometry", "imageItems", "containerRef"]);
+  const [currentImage, setCurrentImage] = createSignal<ViewerImageItem | null>(null);
+  const [nextImage, setNextImage] = createSignal<ViewerImageItem | null>(null);
+  const [isNextImageLoaded, setIsNextImageLoaded] = createSignal(false);
 
   const containerSize = createElementSize(local.containerRef);
 
@@ -43,25 +46,44 @@ export default function ViewerImage(props: ViewerImageProps) {
     return bestImage;
   });
 
-  // Log selected image dimensions when they change
+  // Handle image loading and switching
   createEffect(() => {
-    const image = selectedImage();
-    if (image) {
-      console.log('Selected image:', {
-        width: image.width,
-        height: image.height
-      });
+    const newSelectedImage = selectedImage();
+    if (!newSelectedImage) return;
+
+    // If we don't have a current image, set it immediately
+    if (!currentImage()) {
+      setCurrentImage(newSelectedImage);
+      return;
+    }
+
+    // If the selected image is different from current, start loading it
+    if (newSelectedImage.src !== currentImage()?.src) {
+      setNextImage(newSelectedImage);
+      setIsNextImageLoaded(false);
+
+      // Create a new image to preload
+      console.log('Loading next image:', newSelectedImage.width, newSelectedImage.height);
+      const img = new Image();
+      img.onload = () => {
+        setIsNextImageLoaded(true);
+        setCurrentImage(newSelectedImage);
+        setNextImage(null);
+        console.log('Next image loaded:', newSelectedImage.width, newSelectedImage.height);
+      };
+      img.src = newSelectedImage.src;
     }
   });
 
   return (
     <img
-      src={selectedImage()?.src || ""}
-      width={selectedImage()?.width || 0}
-      height={selectedImage()?.height || 0}
+      src={currentImage()?.src || ""}
+      width={currentImage()?.width || 0}
+      height={currentImage()?.height || 0}
       style={{
         "transform": `translate(${local.geometry.x}px, ${local.geometry.y}px) scale(${local.geometry.scale})`,
-        "background-image": local.imageItems[0].src ? `url(${local.imageItems[0].src})` : undefined,
+        "background-image": nextImage()?.src ? `url(${nextImage()?.src})` : undefined,
+        "opacity": isNextImageLoaded() ? 1 : 0.99, // Slight opacity change to force repaint
       }}
       loading="lazy"
       decoding="async"
