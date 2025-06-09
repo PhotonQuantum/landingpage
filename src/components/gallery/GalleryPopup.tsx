@@ -98,11 +98,11 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
         <div class="relative grow w-full flex justify-center items-center overflow-hidden touch-none select-none" ref={setContainerRef}>
           <WebGLViewer
             ref={setImgRef}
-            containerRef={containerRef}
             initialThumbnail={currentThumbnail()}
+            containerRef={containerRef}
             geometry={geometry()}
             imageItems={currentImageItems()}
-            class={`w-full h-full bg-no-repeat bg-center bg-cover touch-none select-none`}
+            class={`w-full h-full touch-none select-none`}
             onBoundingRectChange={setImgBounds}
             onLoadingChange={setIsLoading}
           />

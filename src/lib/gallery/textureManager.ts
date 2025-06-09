@@ -10,20 +10,26 @@ export interface TextureEntry {
 export interface TextureManagerOptions {
   onTextureLoaded?: (src: string) => void;
   onTextureLoadError?: (src: string, error: Error) => void;
+  onTextureLoadCancelled?: (src: string) => void;
+}
+
+interface LoadingTexture {
+  promise: Promise<WebGLTexture>;
+  abortController: AbortController;
+  image: HTMLImageElement;
 }
 
 export class TextureManager {
   private textureCache: Accessor<Map<string, TextureEntry>>;
   private setTextureCache: Setter<Map<string, TextureEntry>>;
-  private loadingTextures: Accessor<Map<string, Promise<WebGLTexture>>>;
-  private setLoadingTextures: Setter<Map<string, Promise<WebGLTexture>>>;
+  private loadingTextures: Accessor<Map<string, LoadingTexture>>;
+  private setLoadingTextures: Setter<Map<string, LoadingTexture>>;
   private currentCacheSize: number;
   private readonly MAX_CACHE_SIZE: number;
-  private gl: WebGLRenderingContext;
+  private gl!: WebGLRenderingContext;
   private options: TextureManagerOptions;
 
-  constructor(gl: WebGLRenderingContext, options: TextureManagerOptions = {}, maxCacheSize: number = 256 * 1024 * 1024) {
-    this.gl = gl;
+  constructor(options: TextureManagerOptions = {}, maxCacheSize: number = 256 * 1024 * 1024) {
     [this.textureCache, this.setTextureCache] = createSignal(new Map(), {equals: false});
     [this.loadingTextures, this.setLoadingTextures] = createSignal(new Map(), {equals: false});
     this.currentCacheSize = 0;
@@ -31,11 +37,15 @@ export class TextureManager {
     this.options = options;
   }
 
+  public setGL(gl: WebGLRenderingContext) {
+    this.gl = gl;
+  }
+
   private getTextureCache(): Map<string, TextureEntry> {
     return untrack(this.textureCache);
   }
 
-  private getLoadingTextures(): Map<string, Promise<WebGLTexture>> {
+  private getLoadingTextures(): Map<string, LoadingTexture> {
     return untrack(this.loadingTextures);
   }
 
@@ -76,18 +86,58 @@ export class TextureManager {
     }
   }
 
+  // Cancel loading a texture
+  public cancelTextureLoad(src: string): boolean {
+    const loadingTexture = this.getLoadingTextures().get(src);
+    if (!loadingTexture) return false;
+
+    // Abort the fetch request if it's still in progress
+    loadingTexture.abortController.abort();
+    
+    // Clean up the image element
+    loadingTexture.image.src = '';
+    loadingTexture.image.onload = null;
+    loadingTexture.image.onerror = null;
+
+    // Remove from loading textures
+    this.setLoadingTextures(prev => {
+      prev.delete(src);
+      return prev;
+    });
+
+    this.options.onTextureLoadCancelled?.(src);
+    return true;
+  }
+
+  // Cancel all loading textures
+  public cancelAllTextureLoads(): void {
+    this.getLoadingTextures().forEach((loadingTexture, src) => {
+      this.cancelTextureLoad(src);
+    });
+  }
+
   // Load texture asynchronously
   public async loadTexture(src: string): Promise<WebGLTexture> {
     if (this.getTextureCache().has(src)) {
       this.updateTextureLastUsed(src);
       return this.getTextureCache().get(src)!.texture;
     }
-    if (this.getLoadingTextures().has(src)) return this.getLoadingTextures().get(src)!;
 
-    const loadPromise = new Promise<WebGLTexture>((resolve) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous"; // Enable CORS
+    const loadingTexture = this.getLoadingTextures().get(src);
+    if (loadingTexture) return loadingTexture.promise;
+
+    const abortController = new AbortController();
+    const img = new Image();
+    img.crossOrigin = "anonymous"; // Enable CORS
+
+    const loadPromise = new Promise<WebGLTexture>((resolve, reject) => {
       img.onload = () => {
+        // Check if the load was cancelled
+        if (abortController.signal.aborted) {
+          reject(new Error('Texture load cancelled'));
+          return;
+        }
+
         const texture = this.gl.createTexture()!;
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
@@ -110,20 +160,32 @@ export class TextureManager {
         const textureSize = this.calculateTextureSize(img.width, img.height);
         this.evictTextures(textureSize);
         
-        this.setTextureCache((prev) => {
+        this.setTextureCache(prev => {
           prev.set(src, {
-          texture,
-          size: textureSize,
-          lastUsed: Date.now()
+            texture,
+            size: textureSize,
+            lastUsed: Date.now()
+          });
+          return prev;
         });
-        return prev;
-      });
         this.currentCacheSize += textureSize;
+
+        this.setLoadingTextures((prev) => {
+          prev.delete(src);
+          return prev;
+        }); 
 
         this.options.onTextureLoaded?.(src);
         resolve(texture);
       };
+
       img.onerror = (error) => {
+        // Check if the load was cancelled
+        if (abortController.signal.aborted) {
+          reject(new Error('Texture load cancelled'));
+          return;
+        }
+
         console.error('Failed to load image:', error);
         // Create a 1x1 transparent texture as fallback
         const fallbackTexture = this.gl.createTexture()!;
@@ -131,31 +193,41 @@ export class TextureManager {
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
         
         const fallbackSize = this.calculateTextureSize(1, 1);
-        this.setTextureCache((prev) => {
+        this.setTextureCache(prev => {
           prev.set(src, {
-          texture: fallbackTexture,
-          size: fallbackSize,
-          lastUsed: Date.now()
+            texture: fallbackTexture,
+            size: fallbackSize,
+            lastUsed: Date.now()
+          });
+          return prev;
         });
-        return prev;
-      });
         this.currentCacheSize += fallbackSize;
 
         this.options.onTextureLoadError?.(src, new Error('Failed to load image'));
         resolve(fallbackTexture);
       };
+
+      // Set up abort handling
+      abortController.signal.addEventListener('abort', () => {
+        img.src = '';
+        img.onload = null;
+        img.onerror = null;
+        reject(new Error('Texture load cancelled'));
+      });
+
       img.src = src;
     });
 
-    this.setLoadingTextures((prev) => {
-      prev.set(src, loadPromise);
+    this.setLoadingTextures(prev => {
+      prev.set(src, { promise: loadPromise, abortController, image: img });
       return prev;
     });
+
     return loadPromise;
   }
 
   // Find nearest available texture
-  public findNearestAvailableTexture(currentImage: ViewerImageItem, imageItems: ViewerImageItem[], initialThumbnail?: string): WebGLTexture | undefined {
+  public findNearestAvailableTexture(currentImage: ViewerImageItem, imageItems: ViewerImageItem[]): WebGLTexture | undefined {
     const currentIndex = imageItems.findIndex(item => item.src === currentImage.src);
     if (currentIndex === -1) return undefined;
 
@@ -185,29 +257,28 @@ export class TextureManager {
       searchDistance++;
     }
 
-    // If no texture found, try to use the thumbnail
-    if (initialThumbnail) {
-      const thumbnailTexture = this.getTextureCache().get(initialThumbnail)?.texture;
-      if (thumbnailTexture) {
-        this.updateTextureLastUsed(initialThumbnail);
-        console.log("using thumbnail", initialThumbnail);
-        return thumbnailTexture;
-      }
-    }
-
     console.log("no texture found");
-
     return undefined;
   }
 
   // Check if a texture is loaded
-  public hasTexture(src: string): Accessor<boolean> {
-    return createMemo(() => this.textureCache().has(src));
+  public hasTexture(src: string|string[]): Accessor<boolean> {
+    return createMemo(() => {
+      if (Array.isArray(src)) {
+        return src.some(s => this.textureCache().has(s));
+      }
+      return this.textureCache().has(src);
+    });
   }
 
   // Check if a texture is loading
-  public isLoadingTexture(src: string): Accessor<boolean> {
-    return createMemo(() => this.loadingTextures().has(src));
+  public isLoadingTexture(src: string|string[]): Accessor<boolean> {
+    return createMemo(() => {
+      if (Array.isArray(src)) {
+        return src.some(s => this.loadingTextures().has(s));
+      }
+      return this.loadingTextures().has(src);
+    });
   }
 
   // Get a texture if it exists
@@ -222,6 +293,10 @@ export class TextureManager {
 
   // Clean up all textures
   public dispose() {
+    // Cancel all pending loads
+    this.cancelAllTextureLoads();
+    
+    // Clean up loaded textures
     this.getTextureCache().forEach(entry => this.gl.deleteTexture(entry.texture));
     this.setTextureCache(new Map());
     this.setLoadingTextures(new Map());

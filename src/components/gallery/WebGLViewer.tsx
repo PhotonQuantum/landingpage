@@ -1,11 +1,11 @@
-import { Accessor, createEffect, createMemo, createSignal, JSX, onCleanup, onMount, splitProps } from "solid-js";
+import { Accessor, createEffect, createMemo, createSignal, JSX, on, onCleanup, onMount, splitProps } from "solid-js";
 import { GestureManagerState } from "~/lib/gallery/gesture";
 import { ViewerImageItem } from "~/data/galleryData";
 import { isServer } from "solid-js/web";
 import { createElementBounds } from "@solid-primitives/bounds";
 import { TextureManager } from "~/lib/gallery/textureManager";
 
-export interface WebGLViewerProps extends Omit<JSX.HTMLAttributes<HTMLCanvasElement>, "style"> {
+export interface WebGLViewerProps extends JSX.HTMLAttributes<HTMLCanvasElement> {
   containerRef: Accessor<EventTarget & HTMLElement | undefined>;
   geometry: GestureManagerState;
   imageItems: ViewerImageItem[];
@@ -66,8 +66,10 @@ function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fra
   return program;
 }
 
+const mergeClass = (a: string, b: string) => a.split(" ").concat(b.split(" ")).join(" ");
+
 export default function WebGLViewer(props: WebGLViewerProps) {
-  const [local, rest] = splitProps(props, ["geometry", "imageItems", "containerRef", "onBoundingRectChange", "onLoadingChange", "initialThumbnail"]);
+  const [local, rest] = splitProps(props, ["geometry", "imageItems", "containerRef", "onBoundingRectChange", "onLoadingChange", "initialThumbnail", "class"]);
 
   const initialThumbnail = createMemo(() => local.initialThumbnail);
   const imageItems = createMemo(() => local.imageItems, [], { equals: (a, b) => a.length === b.length && a.every((item, index) => item.src === b[index].src) });
@@ -82,7 +84,21 @@ export default function WebGLViewer(props: WebGLViewerProps) {
   let matrixLocation: WebGLUniformLocation;
   let animationFrameId: number;
   let needsRender = true;
-  let textureManager: TextureManager;
+
+  const textureManager: TextureManager = new TextureManager({
+    onTextureLoaded: (src) => {
+      console.log("loaded texture, triggering render", src);
+      needsRender = true;
+    },
+    onTextureLoadError: (src, error) => {
+      console.error('Failed to load image:', error);
+      needsRender = true;
+    },
+    onTextureLoadCancelled: (src) => {
+      console.log("cancelled texture load", src);
+    }
+  });
+
 
   // Calculate required image size based on container and scale
   const containerBounds = createElementBounds(local.containerRef);
@@ -138,17 +154,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
       preserveDrawingBuffer: true
     })!;
 
-    // Initialize texture manager
-    textureManager = new TextureManager(gl, {
-      onTextureLoaded: (src) => {
-        console.log("loaded texture, triggering render", src);
-        needsRender = true;
-      },
-      onTextureLoadError: (src, error) => {
-        console.error('Failed to load image:', error);
-        needsRender = true;
-      }
-    });
+    textureManager.setGL(gl);
 
     // Create shaders and program
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
@@ -197,15 +203,6 @@ export default function WebGLViewer(props: WebGLViewerProps) {
 
     // Start render loop
     animationFrameId = requestAnimationFrame(render);
-  });
-
-  createEffect(() => {
-    // Load initial thumbnail if provided
-    const localInitialThumbnail = initialThumbnail();
-    if (localInitialThumbnail) {
-      console.log("load initial thumbnail", localInitialThumbnail);
-      textureManager.loadTexture(localInitialThumbnail);
-    }
   });
 
   // Render loop
@@ -271,8 +268,8 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     gl.uniformMatrix4fv(matrixLocation, false, matrix);
 
     // Draw current texture
-    const texture = textureManager.getTexture(currentImage.src) || 
-                   textureManager.findNearestAvailableTexture(currentImage, imageItems(), initialThumbnail());
+    const texture = textureManager.getTexture(currentImage.src) ||
+      textureManager.findNearestAvailableTexture(currentImage, imageItems());
 
     if (texture) {
       gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -284,6 +281,25 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     needsRender = false;
     animationFrameId = requestAnimationFrame(render);
   };
+
+  const hasRendered = createMemo(() => textureManager.hasTexture(imageItems().map(item => item.src))());
+  createEffect(() => {
+    console.log("hasRendered", hasRendered());
+  });
+
+  // Cancel previous texture loads
+  createEffect(
+    on(
+      imageItems,
+      (_, prevItems) => {
+        console.log("cancelling previous texture loads", prevItems);
+        if (!prevItems) return;
+        for (const item of prevItems) {
+          textureManager.cancelTextureLoad(item.src);
+        }
+      }
+    )
+  );
 
   // Handle LOD changes and preloading
   createEffect(() => {
@@ -304,7 +320,6 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     textureManager.updateTextureLastUsed(newSelectedImage.src);
     if (prev) textureManager.updateTextureLastUsed(prev.src);
     if (next) textureManager.updateTextureLastUsed(next.src);
-    if (local.initialThumbnail) textureManager.updateTextureLastUsed(local.initialThumbnail);
   });
 
   // Track loading status
@@ -374,9 +389,13 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     gl.deleteProgram(program);
   });
 
+  const mergedClass = () => mergeClass(local.class ?? "", "bg-no-repeat bg-center bg-contain");
+
   return (
     <canvas
       ref={setCanvas}
+      class={mergedClass()}
+      style={{ "background-image": hasRendered() ? undefined : `url(${initialThumbnail()})` }}
       {...rest}
     />
   );
