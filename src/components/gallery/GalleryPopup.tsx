@@ -44,6 +44,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   });
   const currentInfo = createMemo(() => currentImage() || {});
   const currentImageItems = createMemo(() => currentImage()?.items || []);
+  const currentThumbnail = createMemo(() => currentImage()?.items?.[0]?.src);
 
   // Helper to show tooltip for a few seconds
   const triggerTooltip = () => {
@@ -103,6 +104,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
             class={`w-full h-full bg-no-repeat bg-center bg-cover touch-none select-none`}
             onBoundingRectChange={setImgBounds}
             onLoadingChange={setIsLoading}
+            initialThumbnail={currentThumbnail()}
           />
           {/* Loading indicator */}
           <div 

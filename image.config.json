@@ -7,14 +7,14 @@
     },
     "directives": {
       "landscape": {
-        "w": [512, 1024, 2048, 4096, 8192, "auto"],
+        "w": [128, 512, 1024, 2048, 4096, 8192, "auto"],
         "quality": 80,
         "withoutEnlargement": true,
         "format": "webp",
         "as": "meta:width;height;src"
       },
       "portrait": {
-        "h": [341, 683, 1365, 2730, 5461, "auto"],
+        "h": [128, 341, 683, 1365, 2730, 5461, "auto"],
         "quality": 80,
         "withoutEnlargement": true,
         "format": "webp",

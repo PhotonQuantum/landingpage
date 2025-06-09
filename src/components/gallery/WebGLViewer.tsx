@@ -3,7 +3,7 @@ import { GestureManagerState } from "~/lib/gallery/gesture";
 import { ViewerImageItem } from "~/data/galleryData";
 import { isServer } from "solid-js/web";
 import { createElementBounds } from "@solid-primitives/bounds";
-import { createStore } from "solid-js/store";
+import { createStore, unwrap } from "solid-js/store";
 
 export interface WebGLViewerProps extends Omit<JSX.HTMLAttributes<HTMLCanvasElement>, "style"> {
   containerRef: Accessor<EventTarget & HTMLElement | undefined>;
@@ -11,6 +11,7 @@ export interface WebGLViewerProps extends Omit<JSX.HTMLAttributes<HTMLCanvasElem
   imageItems: ViewerImageItem[];
   onBoundingRectChange?: (rect: DOMRect | null) => void;
   onLoadingChange?: (isLoading: boolean) => void;
+  initialThumbnail?: string;
 }
 
 // WebGL shader programs
@@ -66,7 +67,10 @@ function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fra
 }
 
 export default function WebGLViewer(props: WebGLViewerProps) {
-  const [local, rest] = splitProps(props, ["geometry", "imageItems", "containerRef", "onBoundingRectChange", "onLoadingChange"]);
+  const [local, rest] = splitProps(props, ["geometry", "imageItems", "containerRef", "onBoundingRectChange", "onLoadingChange", "initialThumbnail"]);
+
+  const initialThumbnail = createMemo(() => local.initialThumbnail);
+  const imageItems = createMemo(() => local.imageItems, [], { equals: (a, b) => a.length === b.length && a.every((item, index) => item.src === b[index].src) });
 
   const [canvas, setCanvas] = createSignal<HTMLCanvasElement>();
   let gl: WebGLRenderingContext;
@@ -98,7 +102,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
 
   // Select the best image based on required size
   const selectedImage = createMemo(() => {
-    const items = local.imageItems;
+    const items = imageItems();
     if (!items.length) return null;
 
     const requiredSize = Math.max(requiredImageSize().width, requiredImageSize().height);
@@ -113,7 +117,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
 
   // Get adjacent LOD levels for preloading
   const getAdjacentLODs = (currentImage: ViewerImageItem) => {
-    const items = local.imageItems;
+    const items = imageItems();
     if (!items.length) return { prev: null, next: null };
 
     const currentIndex = items.findIndex(item => item.src === currentImage.src);
@@ -127,33 +131,34 @@ export default function WebGLViewer(props: WebGLViewerProps) {
 
   // Load texture asynchronously
   const loadTexture = async (src: string): Promise<WebGLTexture> => {
-    if (src in textures) return textures[src];
-    if (src in loadingTextures) return loadingTextures[src];
-    
+    if (src in unwrap(textures)) return unwrap(textures)[src];
+    if (src in unwrap(loadingTextures)) return unwrap(loadingTextures)[src];
+
     const loadPromise = new Promise<WebGLTexture>((resolve) => {
       const img = new Image();
       img.crossOrigin = "anonymous"; // Enable CORS
       img.onload = () => {
         const texture = gl.createTexture()!;
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        
+
         // First upload the image
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-        
+
         // Then set texture parameters
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        
+
         // Enable anisotropic filtering if available
         const ext = gl.getExtension('EXT_texture_filter_anisotropic');
         if (ext) {
           const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
           gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
         }
-        
+
         setTextures(src, texture);
+        console.log("loaded texture, triggering render", src);
         needsRender = true;
         resolve(texture);
       };
@@ -169,19 +174,19 @@ export default function WebGLViewer(props: WebGLViewerProps) {
       };
       img.src = src;
     });
-    
+
     setLoadingTextures(src, loadPromise);
     return loadPromise;
   };
 
   // Find nearest available texture
   const findNearestAvailableTexture = (currentImage: ViewerImageItem): WebGLTexture | undefined => {
-    const items = local.imageItems;
+    const items = imageItems();
     const currentIndex = items.findIndex(item => item.src === currentImage.src);
     if (currentIndex === -1) return undefined;
-    
+
     let searchDistance = 1;
-    
+
     while (searchDistance < items.length) {
       // Check lower resolution
       const lowerIndex = currentIndex - searchDistance;
@@ -189,17 +194,25 @@ export default function WebGLViewer(props: WebGLViewerProps) {
         const lowerTexture = textures[items[lowerIndex].src];
         if (lowerTexture) return lowerTexture;
       }
-      
+
       // Check higher resolution
       const higherIndex = currentIndex + searchDistance;
       if (higherIndex < items.length) {
         const higherTexture = textures[items[higherIndex].src];
         if (higherTexture) return higherTexture;
       }
-      
+
       searchDistance++;
     }
-    
+
+    console.log("no texture found, trying thumbnail", local.initialThumbnail);
+    // If no texture found, try to use the thumbnail
+    if (local.initialThumbnail && local.initialThumbnail in textures) {
+      console.log("fallback to thumbnail", local.initialThumbnail);
+      return textures[local.initialThumbnail];
+    }
+
+    console.log("no texture found, returning undefined");
     return undefined;
   };
 
@@ -262,6 +275,14 @@ export default function WebGLViewer(props: WebGLViewerProps) {
 
     // Start render loop
     animationFrameId = requestAnimationFrame(render);
+  });
+
+  createEffect(() => {
+    // Load initial thumbnail if provided
+    const localInitialThumbnail = initialThumbnail();
+    if (localInitialThumbnail) {
+      loadTexture(localInitialThumbnail);
+    }
   });
 
   // Render loop
@@ -328,20 +349,22 @@ export default function WebGLViewer(props: WebGLViewerProps) {
 
     // Draw current texture
     const texture = textures[currentImage.src] || findNearestAvailableTexture(currentImage);
-    
+
     if (texture) {
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
-    
+
     needsRender = false;
     animationFrameId = requestAnimationFrame(render);
   };
 
   // Handle LOD changes and preloading
   createEffect(() => {
+    console.log("triggered LOD change", "selectedImage", selectedImage());
+
     const newSelectedImage = selectedImage();
     if (!newSelectedImage) return;
 
@@ -352,6 +375,26 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     const { prev, next } = getAdjacentLODs(newSelectedImage);
     if (prev) loadTexture(prev.src);
     if (next) loadTexture(next.src);
+
+    // Clean up textures that are no longer needed
+    // Keep only the current image, adjacent LODs, and thumbnail
+    const texturesToKeep = new Set<string>();
+    texturesToKeep.add(newSelectedImage.src);
+    if (prev) texturesToKeep.add(prev.src);
+    if (next) texturesToKeep.add(next.src);
+    if (initialThumbnail()) texturesToKeep.add(initialThumbnail()!);
+
+    // Delete textures that are not needed
+    setTextures(prev => {
+      const newTextures = Object.entries(prev).filter(([src, texture]) => {
+        if (!texturesToKeep.has(src)) {
+          gl.deleteTexture(texture);
+          return false;
+        }
+        return true;
+      });
+      return Object.fromEntries(newTextures);
+    });
   });
 
   // Track loading status
@@ -361,7 +404,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
 
     const isOptimalTextureLoaded = currentImage.src in textures;
     const isOptimalTextureLoading = currentImage.src in loadingTextures;
-    
+
     local.onLoadingChange?.(!isOptimalTextureLoaded && isOptimalTextureLoading);
   });
 
@@ -404,6 +447,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     const rect = getBoundingClientRect();
     local.onBoundingRectChange?.(rect);
     // Force a render
+    console.log("getBoundingClientRect changed");
     needsRender = true;
   });
 
