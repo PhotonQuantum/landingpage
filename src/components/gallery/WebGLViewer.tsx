@@ -3,7 +3,7 @@ import { GestureManagerState } from "~/lib/gallery/gesture";
 import { ViewerImageItem } from "~/data/galleryData";
 import { isServer } from "solid-js/web";
 import { createElementBounds } from "@solid-primitives/bounds";
-import { createStore, unwrap } from "solid-js/store";
+import { TextureManager } from "~/lib/gallery/textureManager";
 
 export interface WebGLViewerProps extends Omit<JSX.HTMLAttributes<HTMLCanvasElement>, "style"> {
   containerRef: Accessor<EventTarget & HTMLElement | undefined>;
@@ -82,10 +82,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
   let matrixLocation: WebGLUniformLocation;
   let animationFrameId: number;
   let needsRender = true;
-
-  // Texture management using SolidJS stores
-  const [textures, setTextures] = createStore<Record<string, WebGLTexture>>({});
-  const [loadingTextures, setLoadingTextures] = createStore<Record<string, Promise<WebGLTexture>>>({});
+  let textureManager: TextureManager;
 
   // Calculate required image size based on container and scale
   const containerBounds = createElementBounds(local.containerRef);
@@ -129,93 +126,6 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     };
   };
 
-  // Load texture asynchronously
-  const loadTexture = async (src: string): Promise<WebGLTexture> => {
-    if (src in unwrap(textures)) return unwrap(textures)[src];
-    if (src in unwrap(loadingTextures)) return unwrap(loadingTextures)[src];
-
-    const loadPromise = new Promise<WebGLTexture>((resolve) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous"; // Enable CORS
-      img.onload = () => {
-        const texture = gl.createTexture()!;
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-
-        // First upload the image
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-
-        // Then set texture parameters
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        // Enable anisotropic filtering if available
-        const ext = gl.getExtension('EXT_texture_filter_anisotropic');
-        if (ext) {
-          const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-          gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
-        }
-
-        setTextures(src, texture);
-        console.log("loaded texture, triggering render", src);
-        needsRender = true;
-        resolve(texture);
-      };
-      img.onerror = (error) => {
-        console.error('Failed to load image:', error);
-        // Create a 1x1 transparent texture as fallback
-        const fallbackTexture = gl.createTexture()!;
-        gl.bindTexture(gl.TEXTURE_2D, fallbackTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
-        setTextures(src, fallbackTexture);
-        needsRender = true;
-        resolve(fallbackTexture);
-      };
-      img.src = src;
-    });
-
-    setLoadingTextures(src, loadPromise);
-    return loadPromise;
-  };
-
-  // Find nearest available texture
-  const findNearestAvailableTexture = (currentImage: ViewerImageItem): WebGLTexture | undefined => {
-    const items = imageItems();
-    const currentIndex = items.findIndex(item => item.src === currentImage.src);
-    if (currentIndex === -1) return undefined;
-
-    let searchDistance = 1;
-
-    while (searchDistance < items.length) {
-      // Check lower resolution
-      const lowerIndex = currentIndex - searchDistance;
-      if (lowerIndex >= 0) {
-        const lowerTexture = textures[items[lowerIndex].src];
-        if (lowerTexture) return lowerTexture;
-      }
-
-      // Check higher resolution
-      const higherIndex = currentIndex + searchDistance;
-      if (higherIndex < items.length) {
-        const higherTexture = textures[items[higherIndex].src];
-        if (higherTexture) return higherTexture;
-      }
-
-      searchDistance++;
-    }
-
-    console.log("no texture found, trying thumbnail", local.initialThumbnail);
-    // If no texture found, try to use the thumbnail
-    if (local.initialThumbnail && local.initialThumbnail in textures) {
-      console.log("fallback to thumbnail", local.initialThumbnail);
-      return textures[local.initialThumbnail];
-    }
-
-    console.log("no texture found, returning undefined");
-    return undefined;
-  };
-
   // Initialize WebGL
   onMount(() => {
     const canvasElement = canvas();
@@ -227,6 +137,18 @@ export default function WebGLViewer(props: WebGLViewerProps) {
       antialias: true,
       preserveDrawingBuffer: true
     })!;
+
+    // Initialize texture manager
+    textureManager = new TextureManager(gl, {
+      onTextureLoaded: (src) => {
+        console.log("loaded texture, triggering render", src);
+        needsRender = true;
+      },
+      onTextureLoadError: (src, error) => {
+        console.error('Failed to load image:', error);
+        needsRender = true;
+      }
+    });
 
     // Create shaders and program
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
@@ -281,7 +203,8 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     // Load initial thumbnail if provided
     const localInitialThumbnail = initialThumbnail();
     if (localInitialThumbnail) {
-      loadTexture(localInitialThumbnail);
+      console.log("load initial thumbnail", localInitialThumbnail);
+      textureManager.loadTexture(localInitialThumbnail);
     }
   });
 
@@ -348,7 +271,8 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     gl.uniformMatrix4fv(matrixLocation, false, matrix);
 
     // Draw current texture
-    const texture = textures[currentImage.src] || findNearestAvailableTexture(currentImage);
+    const texture = textureManager.getTexture(currentImage.src) || 
+                   textureManager.findNearestAvailableTexture(currentImage, imageItems(), initialThumbnail());
 
     if (texture) {
       gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -369,32 +293,18 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     if (!newSelectedImage) return;
 
     // Load current image
-    loadTexture(newSelectedImage.src);
+    textureManager.loadTexture(newSelectedImage.src);
 
     // Preload adjacent LOD levels
     const { prev, next } = getAdjacentLODs(newSelectedImage);
-    if (prev) loadTexture(prev.src);
-    if (next) loadTexture(next.src);
+    if (prev) textureManager.loadTexture(prev.src);
+    if (next) textureManager.loadTexture(next.src);
 
-    // Clean up textures that are no longer needed
-    // Keep only the current image, adjacent LODs, and thumbnail
-    const texturesToKeep = new Set<string>();
-    texturesToKeep.add(newSelectedImage.src);
-    if (prev) texturesToKeep.add(prev.src);
-    if (next) texturesToKeep.add(next.src);
-    if (initialThumbnail()) texturesToKeep.add(initialThumbnail()!);
-
-    // Delete textures that are not needed
-    setTextures(prev => {
-      const newTextures = Object.entries(prev).filter(([src, texture]) => {
-        if (!texturesToKeep.has(src)) {
-          gl.deleteTexture(texture);
-          return false;
-        }
-        return true;
-      });
-      return Object.fromEntries(newTextures);
-    });
+    // Update last used time for current and adjacent textures
+    textureManager.updateTextureLastUsed(newSelectedImage.src);
+    if (prev) textureManager.updateTextureLastUsed(prev.src);
+    if (next) textureManager.updateTextureLastUsed(next.src);
+    if (local.initialThumbnail) textureManager.updateTextureLastUsed(local.initialThumbnail);
   });
 
   // Track loading status
@@ -402,10 +312,10 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     const currentImage = selectedImage();
     if (!currentImage) return;
 
-    const isOptimalTextureLoaded = currentImage.src in textures;
-    const isOptimalTextureLoading = currentImage.src in loadingTextures;
+    const isOptimalTextureLoaded = textureManager.hasTexture(currentImage.src);
+    const isOptimalTextureLoading = textureManager.isLoadingTexture(currentImage.src);
 
-    local.onLoadingChange?.(!isOptimalTextureLoaded && isOptimalTextureLoading);
+    local.onLoadingChange?.(!isOptimalTextureLoaded() && isOptimalTextureLoading());
   });
 
   // Function to get the rendered image's bounding rect
@@ -458,7 +368,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
       cancelAnimationFrame(animationFrameId);
     }
     // Clean up WebGL resources
-    Object.values(textures).forEach(texture => gl.deleteTexture(texture));
+    textureManager.dispose();
     gl.deleteBuffer(positionBuffer);
     gl.deleteBuffer(texCoordBuffer);
     gl.deleteProgram(program);

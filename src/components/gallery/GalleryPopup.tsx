@@ -99,12 +99,12 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
           <WebGLViewer
             ref={setImgRef}
             containerRef={containerRef}
+            initialThumbnail={currentThumbnail()}
             geometry={geometry()}
             imageItems={currentImageItems()}
             class={`w-full h-full bg-no-repeat bg-center bg-cover touch-none select-none`}
             onBoundingRectChange={setImgBounds}
             onLoadingChange={setIsLoading}
-            initialThumbnail={currentThumbnail()}
           />
           {/* Loading indicator */}
           <div 
