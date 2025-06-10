@@ -222,7 +222,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
       </div>
 
       {/* Right info panel */}
-      <div ref={el => scrollRefs.push(el)} class="w-[340px] shrink-0 bg-black/50 text-white p-6 overflow-y-auto flex flex-col">
+      <div ref={el => scrollRefs.push(el)} class="w-[340px] shrink-0 bg-black/50 text-white p-6 overflow-y-auto flex flex-col" style={{"transform": "translate3d(0, 0, 0)"}}>
         <button class="self-end mb-2 text-white/70 hover:text-white" onClick={props.onClose}>
           <span class="text-2xl">&#10005;</span>
         </button>
