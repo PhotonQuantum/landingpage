@@ -22,6 +22,8 @@ module.exports = {
                 textDecoration: "underline"
               }
             },
+            'blockquote p:first-of-type::before': null,
+            'blockquote p:last-of-type::after': null,
             // TODO: Using the theme() function migration
             "--tw-prose-body": `var(${normal})`,
             "--tw-prose-headings": `var(--color-black)`,

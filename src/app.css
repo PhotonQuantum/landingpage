@@ -3,7 +3,9 @@
 @plugin "@tailwindcss/typography";
 @config "../tailwind.config.cjs";
 
-@source inline("text-subtle text-gray-500 text-lime-700 font-normal");
+/* @@ CODEGEN: BEGIN MDX INLINE STYLES @@ */
+@source inline("text-gray-500 -mt-4 text-subtle font-normal quote text-lime-700");
+/* @@ CODEGEN: END MDX INLINE STYLES @@ */
 
 body {
   @apply bg-gradient-to-br from-ctp-base to-ctp-crust bg-ctp-base;
@@ -56,6 +58,10 @@ body {
   p {
     @apply has-[+ul]:mb-0;
   }
+}
+
+@utility quote {
+  @apply before:content-[open-quote] after:content-[close-quote];
 }
 
 @utility md-icon {

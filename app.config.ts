@@ -4,15 +4,14 @@ import pkg from "@vinxi/plugin-mdx";
 import remarkDirective from "remark-directive";
 import remarkDirectiveRehype from "remark-directive-rehype";
 import remarkGfm from "remark-gfm";
+import rehypeSlug from "rehype-slug";
 
 import solidSvg from "vite-plugin-solid-svg";
 import Font from "vite-plugin-font";
 import { FontaineTransform } from "fontaine"
-import { imagetools, setMetadata } from "vite-imagetools";
+import { imagetools } from "vite-imagetools";
 import tailwindcss from "@tailwindcss/vite";
-import { encode } from "blurhash";
-import { blurhashToCssGradientString } from "@unpic/placeholder";
-import exifReader from "exif-reader";
+import mdxClassesPlugin from "./scripts/vite-plugin-mdx-classes";
 
 const { default: mdx } = pkg;
 
@@ -34,11 +33,13 @@ export default defineConfig({
       'import.meta.env.VITE_LAST_UPDATE_YEAR': JSON.stringify(buildYearString),
     },
     plugins: [
+      mdxClassesPlugin(),
       mdx.withImports({})({
         jsx: true,
         jsxImportSource: "solid-js",
         providerImportSource: "solid-mdx",
-        remarkPlugins: [remarkGfm, remarkDirective, remarkDirectiveRehype]
+        remarkPlugins: [remarkGfm, remarkDirective, remarkDirectiveRehype],
+        rehypePlugins: [rehypeSlug]
       }),
       solidSvg({
         svgo: { enabled: false }
