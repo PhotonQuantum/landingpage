@@ -1,6 +1,7 @@
 interface Metadata {
     name: string;
     order: number;
+    hidden?: boolean;
 }
 
 export interface Profile {
@@ -20,7 +21,7 @@ export const profilePages: Profile[] = Object.entries(profiles).map(([path, meta
         path: relPath,
         ...metadata as Metadata,
     }
-}).sort((a, b) => a.order - b.order).map(d => {
+}).filter(d => !d.hidden).sort((a, b) => a.order - b.order).map(d => {
     const { order, ...rest } = d;
     return rest;
 });
