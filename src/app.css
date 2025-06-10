@@ -4,7 +4,7 @@
 @config "../tailwind.config.cjs";
 
 /* @@ CODEGEN: BEGIN MDX INLINE STYLES @@ */
-@source inline("text-gray-500 -mt-4 text-subtle font-normal quote text-lime-700");
+@source inline("text-gray-500 -mt-4 font-medium text-subtle font-normal quote text-lime-700");
 /* @@ CODEGEN: END MDX INLINE STYLES @@ */
 
 body {
