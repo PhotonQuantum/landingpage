@@ -1,4 +1,4 @@
-import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, onMount, JSX, splitProps, Accessor, batch, createComputed, createReaction } from "solid-js";
+import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, onMount, JSX, splitProps, Accessor } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
 import { ImagePointer, nextPointer, prevPointer, reverseLookupPointer } from "~/lib/gallery/pointer";
 import { createGestureManager, GestureManagerState } from "~/lib/gallery/gesture";
@@ -65,6 +65,16 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   const currentImageItems = createMemo(() => currentImage()?.items || []);
   const currentThumbnail = createMemo(() => currentImage()?.items?.[0]?.src);
 
+  const [pointerOverride, setPointerOverride] = createSignal<ImagePointer | undefined>(undefined);
+  const imageOverride = createMemo(() => {
+    const p = pointerOverride();
+    if (!p) return undefined;
+    return reverseLookupPointer(galleryGroups, p).image;
+  });
+  const metaSourceImage = createMemo(() => (imageOverride() || currentImage()));
+  const exifMetadata = () => metaSourceImage()?.exif;
+  const blurhash = () => metaSourceImage()?.blurhashGradient;
+
   const prevImageItems = createMemo(() => {
     const p = props.pointer;
     if (!galleryGroups || !p) return undefined;
@@ -88,34 +98,29 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   };
 
   const containerSize = createElementSize(containerRef);
-  const reactNext = createReaction(() => {
+
+  const handleNext = () => (async () => {
+    if (!props.pointer) return;
+    const next = nextPointer(galleryGroups, props.pointer);
+    if (!next) {
+      setGeometry({ scale: 1, x: 0, y: 0 });
+      return;
+    }
+    setPointerOverride(next);
+    await setGeometry({ scale: 1, x: -(containerSize.width ?? 0), y: 0 });
     props.onNext();
-    setGeometry({ scale: 1, x: 0, y: 0 }, { hard: true });
-  })
-  const reactPrev = createReaction(() => {
+  })();
+  const handlePrev = () => (async () => {
+    if (!props.pointer) return;
+    const prev = prevPointer(galleryGroups, props.pointer);
+    if (!prev) {
+      setGeometry({ scale: 1, x: 0, y: 0 });
+      return;
+    }
+    setPointerOverride(prev);
+    await setGeometry({ scale: 1, x: containerSize.width ?? 0, y: 0 });
     props.onPrev();
-    setGeometry({ scale: 1, x: 0, y: 0 }, { hard: true });
-  })
-  const handleNext = () => {
-    if (!props.pointer) return;
-    if (!nextPointer(galleryGroups, props.pointer)) {
-      setGeometry({ scale: 1, x: 0, y: 0 });
-      return;
-    }
-    setGeometry({ scale: 1, x: -(containerSize.width ?? 0), y: 0 });
-    const settled = createMemo(() => geometry().x <= -(containerSize.width ?? 0) + 10);
-    reactNext(settled);
-  };
-  const handlePrev = () => {
-    if (!props.pointer) return;
-    if (!prevPointer(galleryGroups, props.pointer)) {
-      setGeometry({ scale: 1, x: 0, y: 0 });
-      return;
-    }
-    setGeometry({ scale: 1, x: containerSize.width ?? 0, y: 0 });
-    const settled = createMemo(() => geometry().x >= (containerSize.width ?? 0) - 10);
-    reactPrev(settled);
-  };
+  })();
 
   const [imgBounds, setImgBounds] = createSignal<DOMRect | null>(null);
 
@@ -135,8 +140,10 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   });
   const [geometry, setGeometry] = createSpringGeometry(geometry_, setGeometry_);
 
+  // Reset geometry and image override when current image changes
   createEffect(() => {
     currentImage(); // dependency
+    setPointerOverride(undefined);
     setGeometry({ scale: 1, x: 0, y: 0 }, { hard: true });
   });
 
@@ -150,7 +157,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
 
   return (
     <div class="fixed inset-0 z-100 flex flex-row bg-black" {...others}>
-      <div class="absolute w-full h-full -z-10" style={{ "background": currentImage()?.blurhashGradient }}></div>
+      <div class="absolute w-full h-full -z-10" style={{ "background": blurhash() }}></div>
       {/* Main image area */}
       <div class="flex-1 min-w-0 flex flex-col justify-center items-center relative">
         {/* Tooltip */}
@@ -192,7 +199,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
         <GalleryThumbnails
           ref={el => scrollRefs.push(el)}
           galleryGroups={galleryGroups}
-          pointer={props.pointer}
+          pointer={pointerOverride() || props.pointer}
           onSelect={props.onSelect}
         />
       </div>
@@ -204,7 +211,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
         </button>
         <h2 class="text-lg font-bold mb-4">Image Info</h2>
         <div class="text-sm space-y-2">
-          <For each={Object.entries(currentInfo())}>{([key, value]) =>
+          <For each={Object.entries(exifMetadata() || {})}>{([key, value]) =>
             <div class="flex justify-between border-b border-white/10 py-1">
               <span class="text-gray-300">{key}</span>
               <span class="text-right break-all">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>

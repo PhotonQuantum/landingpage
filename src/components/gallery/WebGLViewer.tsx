@@ -1,4 +1,4 @@
-import { Accessor, createEffect, createMemo, createSignal, JSX, on, onCleanup, onMount, splitProps } from "solid-js";
+import { Accessor, createEffect, createMemo, createSignal, JSX, on, onCleanup, onMount, splitProps, untrack } from "solid-js";
 import { GestureManagerState } from "~/lib/gallery/gesture";
 import { ViewerImageItem } from "~/data/galleryData";
 import { isServer } from "solid-js/web";
@@ -73,8 +73,13 @@ const mergeClass = (a: string, b: string) => a.split(" ").concat(b.split(" ")).j
 const imageItemsEquals = (a: ViewerImageItem[], b: ViewerImageItem[]) => a.length === b.length && a.every((item, index) => item.src === b[index].src);
 const optEquals = <T,>(equals: (a: T, b: T) => boolean) => (a: T | undefined, b: T | undefined) => a === b || (a !== undefined && b !== undefined && equals(a, b));
 
-const calculateScaleFactors = (image: ViewerImageItem, containerAspect: number, scale: number) => {
-  const imageAspect = image.width / image.height;
+const getImageAspect = (items: ViewerImageItem[]) => {
+  if (!items.length) return 1;
+  const lastImage = items[items.length - 1];
+  return lastImage.width / lastImage.height;
+};
+
+const calculateScaleFactors = (imageAspect: number, containerAspect: number, scale: number) => {
   let scaleX = scale;
   let scaleY = scale;
 
@@ -262,7 +267,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     // Calculate scale factors to maintain aspect ratio
-    const { scaleX, scaleY } = calculateScaleFactors(currentImage, containerAspect, scale);
+    const { scaleX, scaleY } = calculateScaleFactors(getImageAspect(imageItems()), containerAspect, scale);
 
     // Render current image
     const currentMatrix = new Float32Array([
@@ -289,7 +294,7 @@ export default function WebGLViewer(props: WebGLViewerProps) {
       const transitionImageItems = direction < 0 ? nextImageItems() : prevImageItems();
       if (direction && transitionImageItems) {
         // Calculate scale factors for next/previous image based on its own aspect ratio
-        const { scaleX: nextScaleX, scaleY: nextScaleY } = calculateScaleFactors(transitionImageItems[0], containerAspect, scale);
+        const { scaleX: nextScaleX, scaleY: nextScaleY } = calculateScaleFactors(getImageAspect(transitionImageItems), containerAspect, scale);
 
         const nextMatrix = new Float32Array([
           nextScaleX, 0, 0, 0,
