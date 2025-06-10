@@ -1,11 +1,11 @@
-import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, onMount, JSX, splitProps } from "solid-js";
+import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, onMount, JSX, splitProps, Accessor } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
-import { ImagePointer } from "~/lib/gallery/pointer";
-import { createGestureManager } from "~/lib/gallery/gesture";
+import { ImagePointer, reverseLookupPointer } from "~/lib/gallery/pointer";
+import { createGestureManager, GestureManagerState } from "~/lib/gallery/gesture";
 
 import SvgChevronLeft from "@tabler/icons/outline/chevron-left.svg";
 import SvgChevronRight from "@tabler/icons/outline/chevron-right.svg";
-import { createDerivedSpring } from "@solid-primitives/spring";
+import { createSpring } from "@solid-primitives/spring";
 import GalleryThumbnails from "./GalleryThumbnails";
 import { lock, unlock } from "tua-body-scroll-lock";
 import WebGLViewer from "./WebGLViewer";
@@ -25,6 +25,21 @@ const oneShotTimer = (fn: () => void, delay: number) => {
   }, delay);
 };
 
+const createSpringGeometry = (geometry: Accessor<GestureManagerState>, setGeometry: (state: Partial<GestureManagerState>) => void): [Accessor<GestureManagerState>, (state: Partial<GestureManagerState>, hard?: boolean) => void] => {
+  const [springGeometry, setSpringGeometry] = createSpring(geometry(), {
+    stiffness: 0.3,
+  });
+  let nextHard = false;
+  createEffect(() => {
+    setSpringGeometry(geometry(), { hard: nextHard });
+    nextHard = false;
+  });
+  return [springGeometry, (v, hard = false) => {
+    nextHard = hard;
+    setGeometry(v);
+  }];
+};
+
 export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   const [_, others] = splitProps(props, ["pointer", "onPrev", "onNext", "onClose", "onSelect"]);
 
@@ -40,7 +55,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   const currentImage = createMemo(() => {
     const p = props.pointer;
     if (!galleryGroups || !p) return undefined;
-    return galleryGroups[p.groupIndex].items[p.itemIndex].images[p.imageIndex][1];
+    return reverseLookupPointer(galleryGroups, p).image;
   });
   const currentInfo = createMemo(() => currentImage() || {});
   const currentImageItems = createMemo(() => currentImage()?.items || []);
@@ -54,7 +69,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
 
   const [imgBounds, setImgBounds] = createSignal<DOMRect | null>(null);
 
-  const { state: geometry_, setState: setGeometry, hovering } = createGestureManager({
+  const { state: geometry_, setState: setGeometry_, hovering } = createGestureManager({
     ref: imgRef,
     imgBounds: imgBounds,
     containerRef: containerRef,
@@ -65,13 +80,12 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
     },
     onTrackpadUnreliable: triggerTooltip,
   });
-  const geometry = createDerivedSpring(geometry_, {
-    stiffness: 0.3,
-  });
+  const [geometry, setGeometry] = createSpringGeometry(geometry_, setGeometry_);
 
   createEffect(() => {
     currentImage(); // dependency
-    setGeometry({ scale: 1, x: 0, y: 0 });
+    // TODO reset transition
+    setGeometry({ scale: 1, x: 0, y: 0 }, true);
   });
 
   onMount(() => {
@@ -107,7 +121,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
             onLoadingChange={setIsLoading}
           />
           {/* Loading indicator */}
-          <div 
+          <div
             class={`absolute bottom-4 right-4 w-6 h-6 border-2 border-white/30 border-t-white rounded-full motion-safe:animate-spin ${isLoading() ? 'opacity-100' : 'opacity-0'}`}
             style={{ "transition": "opacity 0.2s" }}
           />
