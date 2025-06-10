@@ -9,6 +9,8 @@ export interface WebGLViewerProps extends JSX.HTMLAttributes<HTMLCanvasElement> 
   containerRef: Accessor<EventTarget & HTMLElement | undefined>;
   geometry: GestureManagerState;
   imageItems: ViewerImageItem[];
+  prevImageItems?: ViewerImageItem[];
+  nextImageItems?: ViewerImageItem[];
   onBoundingRectChange?: (rect: DOMRect | null) => void;
   onLoadingChange?: (isLoading: boolean) => void;
   initialThumbnail?: string;
@@ -68,11 +70,39 @@ function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fra
 
 const mergeClass = (a: string, b: string) => a.split(" ").concat(b.split(" ")).join(" ");
 
+const imageItemsEquals = (a: ViewerImageItem[], b: ViewerImageItem[]) => a.length === b.length && a.every((item, index) => item.src === b[index].src);
+const optEquals = <T,>(equals: (a: T, b: T) => boolean) => (a: T | undefined, b: T | undefined) => a === b || (a !== undefined && b !== undefined && equals(a, b));
+
+const calculateScaleFactors = (image: ViewerImageItem, containerAspect: number, scale: number) => {
+  const imageAspect = image.width / image.height;
+  let scaleX = scale;
+  let scaleY = scale;
+
+  if (imageAspect > containerAspect) {
+    // Image is wider than container
+    scaleY = scale * (containerAspect / imageAspect);
+  } else {
+    // Image is taller than container
+    scaleX = scale * (imageAspect / containerAspect);
+  }
+
+  return { scaleX, scaleY };
+};
+
+const findBestImage = (imageItems: ViewerImageItem[], requiredWidth: number, requiredHeight: number) => {
+  const longestSide = Math.max(requiredWidth, requiredHeight);
+  const optimalImageIdx = imageItems.findIndex(item => Math.max(item.width, item.height) >= longestSide);
+  const bestImageIdx = optimalImageIdx === -1 ? imageItems.length - 1 : optimalImageIdx;
+  return imageItems[bestImageIdx];
+};
+
 export default function WebGLViewer(props: WebGLViewerProps) {
-  const [local, rest] = splitProps(props, ["geometry", "imageItems", "containerRef", "onBoundingRectChange", "onLoadingChange", "initialThumbnail", "class"]);
+  const [local, rest] = splitProps(props, ["geometry", "imageItems", "containerRef", "onBoundingRectChange", "onLoadingChange", "initialThumbnail", "class", "prevImageItems", "nextImageItems"]);
 
   const initialThumbnail = createMemo(() => local.initialThumbnail);
-  const imageItems = createMemo(() => local.imageItems, [], { equals: (a, b) => a.length === b.length && a.every((item, index) => item.src === b[index].src) });
+  const imageItems = createMemo(() => local.imageItems, [], { equals: imageItemsEquals });
+  const prevImageItems = createMemo(() => local.prevImageItems, [], { equals: optEquals(imageItemsEquals) });
+  const nextImageItems = createMemo(() => local.nextImageItems, [], { equals: optEquals(imageItemsEquals) });
 
   const [canvas, setCanvas] = createSignal<HTMLCanvasElement>();
   let gl: WebGLRenderingContext;
@@ -103,29 +133,17 @@ export default function WebGLViewer(props: WebGLViewerProps) {
   // Calculate required image size based on container and scale
   const containerBounds = createElementBounds(local.containerRef);
 
-  const requiredImageSize = createMemo(() => {
-    if (!containerBounds.width || !containerBounds.height) return { width: 0, height: 0 };
-
-    const scale = local.geometry.scale;
-    const requiredWidth = containerBounds.width * scale;
-    const requiredHeight = containerBounds.height * scale;
-
-    return { width: requiredWidth, height: requiredHeight };
-  });
-
   // Select the best image based on required size
   const selectedImage = createMemo(() => {
     const items = imageItems();
     if (!items.length) return null;
 
-    const requiredSize = Math.max(requiredImageSize().width, requiredImageSize().height);
+    if (!containerBounds.width || !containerBounds.height) return null;
 
-    // Find the smallest image that's larger than required size, or use the largest one
-    const bestImage = items.find(item =>
-      Math.max(item.width, item.height) >= requiredSize
-    ) || items[items.length - 1];
-
-    return bestImage;
+    const scale = local.geometry.scale;
+    const requiredWidth = containerBounds.width * scale;
+    const requiredHeight = containerBounds.height * scale;
+    return findBestImage(items, requiredWidth, requiredHeight);
   });
 
   // Get adjacent LOD levels for preloading
@@ -233,49 +251,64 @@ export default function WebGLViewer(props: WebGLViewerProps) {
 
     // Calculate aspect ratios
     const containerAspect = container.clientWidth / container.clientHeight;
-    const imageAspect = currentImage.width / currentImage.height;
 
     // Calculate dpr corrected geometry
     const x = local.geometry.x * dpr;
     const y = local.geometry.y * dpr;
     const scale = local.geometry.scale;
 
+    // Clear and setup
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
     // Calculate scale factors to maintain aspect ratio
-    let scaleX = scale;
-    let scaleY = scale;
+    const { scaleX, scaleY } = calculateScaleFactors(currentImage, containerAspect, scale);
 
-    if (imageAspect > containerAspect) {
-      // Image is wider than container
-      scaleY = scale * (containerAspect / imageAspect);
-    } else {
-      // Image is taller than container
-      scaleX = scale * (imageAspect / containerAspect);
-    }
-
-    // Calculate transformation matrix with aspect ratio preservation
-    const matrix = new Float32Array([
+    // Render current image
+    const currentMatrix = new Float32Array([
       scaleX, 0, 0, 0,
       0, -scaleY, 0, 0,
       0, 0, 1, 0,
       x / (canvasElement.width / 2), -y / (canvasElement.height / 2), 0, 1,
     ]);
-
-    // Clear and setup
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    // Set matrix uniform
-    gl.uniformMatrix4fv(matrixLocation, false, matrix);
-
-    // Draw current texture
-    const texture = textureManager.getTexture(currentImage.src) ||
+    gl.uniformMatrix4fv(matrixLocation, false, currentMatrix);
+    const currentTexture = textureManager.getTexture(currentImage.src) ||
       textureManager.findNearestAvailableTexture(currentImage, imageItems());
-
-    if (texture) {
-      gl.bindTexture(gl.TEXTURE_2D, texture);
+    if (currentTexture) {
+      gl.bindTexture(gl.TEXTURE_2D, currentTexture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    // If scale is 1, we're in transition mode
+    if (scale === 1) {
+      const direction = Math.sign(x);
+
+      // Render next/previous image if available
+      const transitionImageItems = direction < 0 ? nextImageItems() : prevImageItems();
+      if (direction && transitionImageItems) {
+        // Calculate scale factors for next/previous image based on its own aspect ratio
+        const { scaleX: nextScaleX, scaleY: nextScaleY } = calculateScaleFactors(transitionImageItems[0], containerAspect, scale);
+
+        const nextMatrix = new Float32Array([
+          nextScaleX, 0, 0, 0,
+          0, -nextScaleY, 0, 0,
+          0, 0, 1, 0,
+          (x - direction * canvasElement.width) / (canvasElement.width / 2), -y / (canvasElement.height / 2), 0, 1,
+        ]);
+        gl.uniformMatrix4fv(matrixLocation, false, nextMatrix);
+        const nextTexture =
+          ((containerBounds.width && containerBounds.height) &&
+            textureManager.getTexture(findBestImage(transitionImageItems, containerBounds.width, containerBounds.height).src)) ||
+          textureManager.getTexture(transitionImageItems[0].src);
+        if (nextTexture) {
+          gl.bindTexture(gl.TEXTURE_2D, nextTexture);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+      }
     }
 
     needsRender = false;
@@ -315,11 +348,25 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     const { prev, next } = getAdjacentLODs(newSelectedImage);
     if (prev) textureManager.loadTexture(prev.src);
     if (next) textureManager.loadTexture(next.src);
+  });
 
-    // Update last used time for current and adjacent textures
-    textureManager.updateTextureLastUsed(newSelectedImage.src);
-    if (prev) textureManager.updateTextureLastUsed(prev.src);
-    if (next) textureManager.updateTextureLastUsed(next.src);
+  // Preload next/previous images
+  createEffect(() => {
+    const next = nextImageItems();
+    const prev = prevImageItems();
+
+    if (next) {
+      textureManager.loadTexture(next[0].src);
+      if (containerBounds.width && containerBounds.height) {
+        textureManager.loadTexture(findBestImage(next, containerBounds.width, containerBounds.height).src);
+      }
+    }
+    if (prev) {
+      textureManager.loadTexture(prev[0].src);
+      if (containerBounds.width && containerBounds.height) {
+        textureManager.loadTexture(findBestImage(prev, containerBounds.width, containerBounds.height).src);
+      }
+    }
   });
 
   // Track loading status

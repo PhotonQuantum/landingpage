@@ -1,6 +1,6 @@
 import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, onMount, JSX, splitProps, Accessor } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
-import { ImagePointer, reverseLookupPointer } from "~/lib/gallery/pointer";
+import { ImagePointer, nextPointer, prevPointer, reverseLookupPointer } from "~/lib/gallery/pointer";
 import { createGestureManager, GestureManagerState } from "~/lib/gallery/gesture";
 
 import SvgChevronLeft from "@tabler/icons/outline/chevron-left.svg";
@@ -61,6 +61,22 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   const currentImageItems = createMemo(() => currentImage()?.items || []);
   const currentThumbnail = createMemo(() => currentImage()?.items?.[0]?.src);
 
+  const prevImageItems = createMemo(() => {
+    const p = props.pointer;
+    if (!galleryGroups || !p) return undefined;
+    const prev = prevPointer(galleryGroups, p);
+    if (!prev) return undefined;
+    return reverseLookupPointer(galleryGroups, prev).image.items;
+  });
+
+  const nextImageItems = createMemo(() => {
+    const p = props.pointer;
+    if (!galleryGroups || !p) return undefined;
+    const next = nextPointer(galleryGroups, p);
+    if (!next) return undefined;
+    return reverseLookupPointer(galleryGroups, next).image.items;
+  });
+
   // Helper to show tooltip for a few seconds
   const triggerTooltip = () => {
     setShowTooltip(true);
@@ -116,6 +132,8 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
             containerRef={containerRef}
             geometry={geometry()}
             imageItems={currentImageItems()}
+            prevImageItems={prevImageItems()}
+            nextImageItems={nextImageItems()}
             class={`w-full h-full touch-none select-none`}
             onBoundingRectChange={setImgBounds}
             onLoadingChange={setIsLoading}

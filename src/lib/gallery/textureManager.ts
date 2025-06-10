@@ -14,7 +14,7 @@ export interface TextureManagerOptions {
 }
 
 interface LoadingTexture {
-  promise: Promise<WebGLTexture>;
+  promise: Promise<WebGLTexture | undefined>;
   abortController: AbortController;
   image: HTMLImageElement;
 }
@@ -22,8 +22,8 @@ interface LoadingTexture {
 export class TextureManager {
   private textureCache: Accessor<Map<string, TextureEntry>>;
   private setTextureCache: Setter<Map<string, TextureEntry>>;
-  private loadingTextures: Accessor<Map<string, LoadingTexture>>;
-  private setLoadingTextures: Setter<Map<string, LoadingTexture>>;
+  private loadingTextures: Accessor<Map<string, LoadingTexture | undefined>>;
+  private setLoadingTextures: Setter<Map<string, LoadingTexture | undefined>>;
   private currentCacheSize: number;
   private readonly MAX_CACHE_SIZE: number;
   private gl!: WebGLRenderingContext;
@@ -45,7 +45,7 @@ export class TextureManager {
     return untrack(this.textureCache);
   }
 
-  private getLoadingTextures(): Map<string, LoadingTexture> {
+  private getLoadingTextures(): Map<string, LoadingTexture | undefined> {
     return untrack(this.loadingTextures);
   }
 
@@ -101,6 +101,7 @@ export class TextureManager {
 
     // Remove from loading textures
     this.setLoadingTextures(prev => {
+      console.log("removing promise from loading textures", src);
       prev.delete(src);
       return prev;
     });
@@ -117,7 +118,7 @@ export class TextureManager {
   }
 
   // Load texture asynchronously
-  public async loadTexture(src: string): Promise<WebGLTexture> {
+  public async loadTexture(src: string): Promise<WebGLTexture | undefined> {
     if (this.getTextureCache().has(src)) {
       this.updateTextureLastUsed(src);
       return this.getTextureCache().get(src)!.texture;
@@ -130,11 +131,11 @@ export class TextureManager {
     const img = new Image();
     img.crossOrigin = "anonymous"; // Enable CORS
 
-    const loadPromise = new Promise<WebGLTexture>((resolve, reject) => {
+    const loadPromise = new Promise<WebGLTexture | undefined>((resolve, reject) => {
       img.onload = () => {
         // Check if the load was cancelled
         if (abortController.signal.aborted) {
-          reject(new Error('Texture load cancelled'));
+          resolve(undefined);
           return;
         }
 
@@ -182,7 +183,7 @@ export class TextureManager {
       img.onerror = (error) => {
         // Check if the load was cancelled
         if (abortController.signal.aborted) {
-          reject(new Error('Texture load cancelled'));
+          resolve(undefined);
           return;
         }
 
@@ -212,7 +213,7 @@ export class TextureManager {
         img.src = '';
         img.onload = null;
         img.onerror = null;
-        reject(new Error('Texture load cancelled'));
+        resolve(undefined);
       });
 
       img.src = src;
@@ -257,7 +258,7 @@ export class TextureManager {
       searchDistance++;
     }
 
-    console.log("no texture found");
+    console.warn("no texture found");
     return undefined;
   }
 
