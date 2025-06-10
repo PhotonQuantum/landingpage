@@ -1,14 +1,15 @@
-import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, onMount, JSX, splitProps, Accessor } from "solid-js";
+import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, onMount, JSX, splitProps, Accessor, batch, createComputed, createReaction } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
 import { ImagePointer, nextPointer, prevPointer, reverseLookupPointer } from "~/lib/gallery/pointer";
 import { createGestureManager, GestureManagerState } from "~/lib/gallery/gesture";
 
 import SvgChevronLeft from "@tabler/icons/outline/chevron-left.svg";
 import SvgChevronRight from "@tabler/icons/outline/chevron-right.svg";
-import { createSpring } from "@solid-primitives/spring";
+import { createSpring, SpringSetterOptions } from "@solid-primitives/spring";
 import GalleryThumbnails from "./GalleryThumbnails";
 import { lock, unlock } from "tua-body-scroll-lock";
 import WebGLViewer from "./WebGLViewer";
+import { createElementSize } from "@solid-primitives/resize-observer";
 
 export interface GalleryPopupProps extends Omit<JSX.HTMLAttributes<HTMLDivElement>, "onSelect"> {
   pointer: ImagePointer | undefined;
@@ -25,18 +26,21 @@ const oneShotTimer = (fn: () => void, delay: number) => {
   }, delay);
 };
 
-const createSpringGeometry = (geometry: Accessor<GestureManagerState>, setGeometry: (state: Partial<GestureManagerState>) => void): [Accessor<GestureManagerState>, (state: Partial<GestureManagerState>, hard?: boolean) => void] => {
+const createSpringGeometry = (geometry: Accessor<GestureManagerState>, setGeometry: (state: Partial<GestureManagerState>) => void): [Accessor<GestureManagerState>, (state: Partial<GestureManagerState>, opts?: SpringSetterOptions) => Promise<void>] => {
   const [springGeometry, setSpringGeometry] = createSpring(geometry(), {
     stiffness: 0.3,
   });
-  let nextHard = false;
+  let skip = true;
   createEffect(() => {
-    setSpringGeometry(geometry(), { hard: nextHard });
-    nextHard = false;
+    let localGeometry = geometry();
+    if (skip) return;
+    setSpringGeometry(localGeometry);
   });
-  return [springGeometry, (v, hard = false) => {
-    nextHard = hard;
+  return [springGeometry, async (v, opts) => {
+    skip = true;
     setGeometry(v);
+    await setSpringGeometry((prev) => ({ ...prev, ...v }), opts);
+    skip = false;
   }];
 };
 
@@ -83,6 +87,26 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
     oneShotTimer(() => setShowTooltip(false), 4000);
   };
 
+  const containerSize = createElementSize(containerRef);
+  const reactNext = createReaction(() => {
+    props.onNext();
+    setGeometry({ scale: 1, x: 0, y: 0 }, { hard: true });
+  })
+  const reactPrev = createReaction(() => {
+    props.onPrev();
+    setGeometry({ scale: 1, x: 0, y: 0 }, { hard: true });
+  })
+  const handleNext = () => {
+    setGeometry({ scale: 1, x: -(containerSize.width ?? 0), y: 0 });
+    const settled = createMemo(() => geometry().x <= -(containerSize.width ?? 0) + 10);
+    reactNext(settled);
+  };
+  const handlePrev = () => {
+    setGeometry({ scale: 1, x: containerSize.width ?? 0, y: 0 });
+    const settled = createMemo(() => geometry().x >= (containerSize.width ?? 0) - 10);
+    reactPrev(settled);
+  };
+
   const [imgBounds, setImgBounds] = createSignal<DOMRect | null>(null);
 
   const { state: geometry_, setState: setGeometry_, hovering } = createGestureManager({
@@ -91,8 +115,11 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
     containerRef: containerRef,
     areaRef: containerRef,
     onSwipe: (direction) => {
-      if (direction === "left") props.onNext();
-      else props.onPrev();
+      if (direction === "left") {
+        handleNext();
+      } else {
+        handlePrev();
+      }
     },
     onTrackpadUnreliable: triggerTooltip,
   });
@@ -100,8 +127,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
 
   createEffect(() => {
     currentImage(); // dependency
-    // TODO reset transition
-    setGeometry({ scale: 1, x: 0, y: 0 }, true);
+    setGeometry({ scale: 1, x: 0, y: 0 }, { hard: true });
   });
 
   onMount(() => {
@@ -144,11 +170,11 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
             style={{ "transition": "opacity 0.2s" }}
           />
           {/* Left navigation */}
-          <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition-opacity z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={props.onPrev}>
+          <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition-opacity z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={handlePrev}>
             <SvgChevronLeft class="w-6 h-6" />
           </button>
           {/* Right navigation */}
-          <button class={`absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={props.onNext}>
+          <button class={`absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={handleNext}>
             <SvgChevronRight class="w-6 h-6" />
           </button>
         </div>
