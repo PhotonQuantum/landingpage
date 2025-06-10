@@ -61,7 +61,6 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
     if (!galleryGroups || !p) return undefined;
     return reverseLookupPointer(galleryGroups, p).image;
   });
-  const currentInfo = createMemo(() => currentImage() || {});
   const currentImageItems = createMemo(() => currentImage()?.items || []);
   const currentThumbnail = createMemo(() => currentImage()?.items?.[0]?.src);
 
@@ -73,23 +72,24 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   });
   const metaSourceImage = createMemo(() => (imageOverride() || currentImage()));
   const exifMetadata = () => metaSourceImage()?.exif;
-  const blurhash = () => metaSourceImage()?.blurhashGradient;
 
-  const prevImageItems = createMemo(() => {
+  const prevImage = createMemo(() => {
     const p = props.pointer;
     if (!galleryGroups || !p) return undefined;
     const prev = prevPointer(galleryGroups, p);
     if (!prev) return undefined;
-    return reverseLookupPointer(galleryGroups, prev).image.items;
+    return reverseLookupPointer(galleryGroups, prev).image;
   });
+  const prevImageItems = () => prevImage()?.items;
 
-  const nextImageItems = createMemo(() => {
+  const nextImage = createMemo(() => {
     const p = props.pointer;
     if (!galleryGroups || !p) return undefined;
     const next = nextPointer(galleryGroups, p);
     if (!next) return undefined;
-    return reverseLookupPointer(galleryGroups, next).image.items;
+    return reverseLookupPointer(galleryGroups, next).image;
   });
+  const nextImageItems = () => nextImage()?.items;
 
   // Helper to show tooltip for a few seconds
   const triggerTooltip = () => {
@@ -155,9 +155,26 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
     unlock(scrollRefs);
   });
 
+  const backgroundOpacity = createMemo(() => {
+    const deltaRatio = geometry().x / (containerSize.width ?? 0);
+    if (geometry().scale > 1) {
+      return [0, 1, 0];
+    }
+    return [
+      Math.max(0, deltaRatio),
+      Math.max(0, 1 - Math.abs(deltaRatio)),
+      Math.max(0, -deltaRatio),
+    ];
+  }, [0, 1, 0]);
+  const currentBackground = () => currentImage()?.blurhashGradient;
+  const prevBackground = () => prevImage()?.blurhashGradient;
+  const nextBackground = () => nextImage()?.blurhashGradient;
+
   return (
     <div class="fixed inset-0 z-100 flex flex-row bg-black" {...others}>
-      <div class="absolute w-full h-full -z-10" style={{ "background": blurhash() }}></div>
+      <div class="absolute w-full h-full -z-10 mix-blend-plus-lighter" style={{ "background": currentBackground(), "opacity": backgroundOpacity()[1] }}></div>
+      <div class="absolute w-full h-full -z-10 mix-blend-plus-lighter" style={{ "background": prevBackground() || currentBackground(), "opacity": backgroundOpacity()[0] }}></div>
+      <div class="absolute w-full h-full -z-10 mix-blend-plus-lighter" style={{ "background": nextBackground() || currentBackground(), "opacity": backgroundOpacity()[2] }}></div>
       {/* Main image area */}
       <div class="flex-1 min-w-0 flex flex-col justify-center items-center relative">
         {/* Tooltip */}
@@ -205,7 +222,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
       </div>
 
       {/* Right info panel */}
-      <div ref={el => scrollRefs.push(el)} class="w-[340px] shrink-0 bg-black/50 text-white p-6 overflow-y-auto backdrop-blur-3xl flex flex-col">
+      <div ref={el => scrollRefs.push(el)} class="w-[340px] shrink-0 bg-black/50 text-white p-6 overflow-y-auto flex flex-col">
         <button class="self-end mb-2 text-white/70 hover:text-white" onClick={props.onClose}>
           <span class="text-2xl">&#10005;</span>
         </button>
