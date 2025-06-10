@@ -97,11 +97,21 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
     setGeometry({ scale: 1, x: 0, y: 0 }, { hard: true });
   })
   const handleNext = () => {
+    if (!props.pointer) return;
+    if (!nextPointer(galleryGroups, props.pointer)) {
+      setGeometry({ scale: 1, x: 0, y: 0 });
+      return;
+    }
     setGeometry({ scale: 1, x: -(containerSize.width ?? 0), y: 0 });
     const settled = createMemo(() => geometry().x <= -(containerSize.width ?? 0) + 10);
     reactNext(settled);
   };
   const handlePrev = () => {
+    if (!props.pointer) return;
+    if (!prevPointer(galleryGroups, props.pointer)) {
+      setGeometry({ scale: 1, x: 0, y: 0 });
+      return;
+    }
     setGeometry({ scale: 1, x: containerSize.width ?? 0, y: 0 });
     const settled = createMemo(() => geometry().x >= (containerSize.width ?? 0) - 10);
     reactPrev(settled);
