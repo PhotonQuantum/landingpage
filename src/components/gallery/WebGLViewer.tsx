@@ -122,16 +122,12 @@ export default function WebGLViewer(props: WebGLViewerProps) {
 
   const textureManager: TextureManager = new TextureManager({
     onTextureLoaded: (src) => {
-      console.log("loaded texture, triggering render", src);
       needsRender = true;
     },
     onTextureLoadError: (src, error) => {
       console.error('Failed to load image:', error);
       needsRender = true;
     },
-    onTextureLoadCancelled: (src) => {
-      console.log("cancelled texture load", src);
-    }
   });
 
 
@@ -321,16 +317,12 @@ export default function WebGLViewer(props: WebGLViewerProps) {
   };
 
   const hasRendered = createMemo(() => textureManager.hasTexture(imageItems().map(item => item.src))());
-  createEffect(() => {
-    console.log("hasRendered", hasRendered());
-  });
 
   // Cancel previous texture loads
   createEffect(
     on(
       imageItems,
       (_, prevItems) => {
-        console.log("cancelling previous texture loads", prevItems);
         if (!prevItems) return;
         for (const item of prevItems) {
           textureManager.cancelTextureLoad(item.src);
@@ -341,8 +333,6 @@ export default function WebGLViewer(props: WebGLViewerProps) {
 
   // Handle LOD changes and preloading
   createEffect(() => {
-    console.log("triggered LOD change", "selectedImage", selectedImage());
-
     const newSelectedImage = selectedImage();
     if (!newSelectedImage) return;
 
@@ -424,7 +414,6 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     const rect = getBoundingClientRect();
     local.onBoundingRectChange?.(rect);
     // Force a render
-    console.log("getBoundingClientRect changed");
     needsRender = true;
   });
 

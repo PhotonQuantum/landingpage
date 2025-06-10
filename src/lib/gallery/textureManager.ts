@@ -101,7 +101,6 @@ export class TextureManager {
 
     // Remove from loading textures
     this.setLoadingTextures(prev => {
-      console.log("removing promise from loading textures", src);
       prev.delete(src);
       return prev;
     });

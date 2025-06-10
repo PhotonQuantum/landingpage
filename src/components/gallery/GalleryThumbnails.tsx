@@ -60,7 +60,6 @@ export default function GalleryThumbnails(props: GalleryThumbnailsProps) {
   const [shift, setShift] = createSignal(false);
 
   createEffect(() => {
-    console.log("scroll to index", selectedIdx());
     const localHandler = handler();
     if (localHandler) {
       localHandler.scrollToIndex(selectedIdx(), { align: "center", smooth: true });
