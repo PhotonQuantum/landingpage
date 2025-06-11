@@ -14,8 +14,7 @@
       "vite-plugin-solid-svg/types-component-solid",
       "vite-plugin-font/src/font",
       "vinxi/types/client",
-      "solid-jsx/types",
-      "@cloudflare/workers-types/2023-07-01",
+      "@cloudflare/workers-types/2023-07-01"
     ],
     "isolatedModules": true,
     "paths": {
@@ -23,8 +22,5 @@
         "./src/*"
       ]
     }
-  },
-  "include": [
-    "global.d.ts"
-  ],
+  }
 }
