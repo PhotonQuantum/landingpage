@@ -351,13 +351,13 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     const prev = prevImageItems();
 
     if (next) {
-      textureManager.loadTexture(next[0].src, "high");
+      textureManager.loadTexture(next[0].src);
       if (containerBounds.width && containerBounds.height) {
         textureManager.loadTexture(findBestImage(next, containerBounds.width, containerBounds.height).src, "low");
       }
     }
     if (prev) {
-      textureManager.loadTexture(prev[0].src, "high");
+      textureManager.loadTexture(prev[0].src);
       if (containerBounds.width && containerBounds.height) {
         textureManager.loadTexture(findBestImage(prev, containerBounds.width, containerBounds.height).src, "low");
       }
