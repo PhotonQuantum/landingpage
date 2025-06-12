@@ -131,7 +131,7 @@ export const createGestureManager = (props: GestureManagerProps): GestureManager
           }
           setState((prev) => {
             if (prev.scale <= 1 && swipeX) {
-              props.onSwipe(swipeX > 0 ? "left" : "right");
+              props.onSwipe(swipeX > 0 ? "right" : "left");
             }
             return {
               ...prev,
