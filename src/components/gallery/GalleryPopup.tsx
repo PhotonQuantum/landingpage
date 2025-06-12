@@ -27,9 +27,7 @@ const oneShotTimer = (fn: () => void, delay: number) => {
 };
 
 const createSpringGeometry = (geometry: Accessor<GestureManagerState>, setGeometry: (state: Partial<GestureManagerState>) => void): [Accessor<GestureManagerState>, (state: Partial<GestureManagerState>, opts?: SpringSetterOptions) => Promise<void>] => {
-  const [springGeometry, setSpringGeometry] = createSpring(geometry(), {
-    stiffness: 0.3,
-  });
+  const [springGeometry, setSpringGeometry] = createSpring(geometry());
   let skip = true;
   createEffect(() => {
     let localGeometry = geometry();
