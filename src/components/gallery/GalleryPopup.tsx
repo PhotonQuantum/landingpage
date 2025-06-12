@@ -156,10 +156,8 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
   });
 
   const backgroundOpacity = createMemo(() => {
-    const deltaRatio = geometry().x / (containerSize.width ?? 0);
-    if (geometry().scale > 1) {
-      return [0, 1, 0];
-    }
+    if (!containerSize.width || geometry().scale > 1) return [0, 1, 0];
+    const deltaRatio = geometry().x / containerSize.width;
     return [
       Math.max(0, deltaRatio),
       Math.max(0, 1 - Math.abs(deltaRatio)),
