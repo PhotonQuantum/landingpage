@@ -195,10 +195,9 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
             onLoadingChange={setIsLoading}
           />
           {/* Loading indicator */}
-          <div
-            class={`absolute bottom-4 right-4 w-6 h-6 border-2 border-white/30 border-t-white rounded-full motion-safe:animate-spin ${isLoading() ? 'opacity-100' : 'opacity-0'}`}
-            style={{ "transition": "opacity 0.2s" }}
-          />
+          <div class={`absolute bottom-8 right-8 w-12 h-12 bg-black/30 rounded-lg backdrop-blur-2xl flex items-center justify-center motion-safe:transition-opacity motion-safe:duration-200 ${isLoading() ? 'opacity-100' : 'opacity-0'}`}>
+            <div class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin shadow-2xl"></div>
+          </div>
           {/* Left navigation */}
           <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition-opacity z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={handlePrev}>
             <SvgChevronLeft class="w-6 h-6" />
