@@ -1,4 +1,4 @@
-import { useContext, createMemo, Component, For, createSignal, createEffect, onCleanup, onMount, JSX, splitProps, Accessor } from "solid-js";
+import { useContext, createMemo, Component, createSignal, createEffect, onCleanup, onMount, JSX, splitProps, Accessor, Show } from "solid-js";
 import { GalleryGroupsContext } from "~/context/gallery";
 import { ImagePointer, nextPointer, prevPointer, reverseLookupPointer } from "~/lib/gallery/pointer";
 import { createGestureManager, GestureManagerState } from "~/lib/gallery/gesture";
@@ -12,6 +12,7 @@ import { lock, unlock } from "tua-body-scroll-lock";
 import WebGLViewer from "./WebGLViewer";
 import { createElementSize } from "@solid-primitives/resize-observer";
 import { GalleryInfoPanel } from "./GalleryInfoPanel";
+import { createPresence } from "@solid-primitives/presence";
 
 export interface GalleryPopupProps extends Omit<JSX.HTMLAttributes<HTMLDivElement>, "onSelect"> {
   pointer: ImagePointer | undefined;
@@ -55,6 +56,9 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
 
   const [showTooltip, setShowTooltip] = createSignal(false);
   const [isLoading, setIsLoading] = createSignal(false);
+
+  const { isVisible: tooltipVisible, isMounted: tooltipMounted } = createPresence(showTooltip, { transitionDuration: 200 });
+  const { isVisible: loadingVisible, isMounted: loadingMounted } = createPresence(isLoading, { transitionDuration: 200 });
 
   const currentImage = createMemo(() => {
     const p = props.pointer;
@@ -139,6 +143,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
     onTrackpadUnreliable: triggerTooltip,
   });
   const [geometry, setGeometry] = createSpringGeometry(geometry_, setGeometry_);
+  const { isVisible: navVisible, isMounted: navMounted } = createPresence(hovering, { transitionDuration: 200 });
 
   // Reset geometry and image override when current image changes
   createEffect(() => {
@@ -176,13 +181,16 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
       {/* Main image area */}
       <div class="flex-1 min-w-0 flex flex-col justify-center items-center relative">
         {/* Tooltip */}
-        <div
-          class={`absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/90 text-white text-sm px-4 py-2 rounded shadow-lg border border-white/10 z-50 cursor-pointer motion-safe:transition-opacity ${showTooltip() ? "opacity-100" : "opacity-0"}`}
-          style={{ "pointer-events": "auto" }}
-          onClick={() => setShowTooltip(false)}
-        >
-          Tip: Use <span class="font-bold">←/→</span> to switch images. Trackpad horizontal scroll is not always reliable.
-        </div>
+        <Show when={tooltipMounted()}>
+          <div
+            class={`absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/90 text-white text-sm px-4 py-2 rounded shadow-lg border border-white/10 z-10 cursor-pointer motion-safe:transition-opacity ${tooltipVisible() ? "opacity-100" : "opacity-0"}`}
+            style={{ "pointer-events": "auto" }}
+            onClick={() => setShowTooltip(false)}
+          >
+            Tip: Use <span class="font-bold">←/→</span> to switch images. Trackpad horizontal scroll is not always reliable.
+          </div>
+        </Show>
+
         <div class="relative grow w-full flex justify-center items-center overflow-hidden touch-none select-none" ref={setContainerRef}>
           <WebGLViewer
             ref={setImgRef}
@@ -197,17 +205,23 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
             onLoadingChange={setIsLoading}
           />
           {/* Loading indicator */}
-          <div class={`absolute bottom-8 right-8 w-12 h-12 bg-black/30 rounded-lg backdrop-blur-2xl flex items-center justify-center motion-safe:transition-opacity motion-safe:duration-200 ${isLoading() ? 'opacity-100' : 'opacity-0'}`}>
-            <div class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin shadow-2xl"></div>
-          </div>
+          <Show when={loadingMounted()}>
+            <div class={`absolute bottom-8 right-8 w-12 h-12 bg-black/30 rounded-lg backdrop-blur-2xl flex items-center justify-center motion-safe:transition-opacity motion-safe:duration-200 ${loadingVisible() ? 'opacity-100' : 'opacity-0'}`}>
+              <div class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin shadow-2xl"></div>
+            </div>
+          </Show>
           {/* Left navigation */}
-          <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition-opacity z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={handlePrev}>
-            <SvgChevronLeft class="w-6 h-6" />
-          </button>
+          <Show when={navMounted()}>
+            <button class={`absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition-opacity z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${navVisible() ? "opacity-100" : "opacity-0"}`} onClick={handlePrev}>
+              <SvgChevronLeft class="w-6 h-6" />
+            </button>
+          </Show>
           {/* Right navigation */}
-          <button class={`absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={handleNext}>
-            <SvgChevronRight class="w-6 h-6" />
-          </button>
+          <Show when={navMounted()}>
+            <button class={`absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${navVisible() ? "opacity-100" : "opacity-0"}`} onClick={handleNext}>
+              <SvgChevronRight class="w-6 h-6" />
+            </button>
+          </Show>
           {/* Close button */}
           <button class="absolute top-6 right-6 w-8 h-8 flex items-center justify-center text-white hover:text-white z-20 bg-black/70 hover:bg-black/90 rounded-full cursor-pointer motion-safe:transition-colors" onClick={props.onClose}>
             <SvgX class="w-4 h-4" />
@@ -223,7 +237,7 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
       </div>
 
       {/* Right info panel */}
-      <div ref={el => scrollRefs.push(el)} class="w-0 md:w-xs md:p-5 shrink-0 bg-black/50 text-white overflow-y-auto flex flex-col" style={{"transform": "translate3d(0, 0, 0)"}}>
+      <div ref={el => scrollRefs.push(el)} class="w-0 md:w-xs md:p-5 shrink-0 bg-black/50 text-white overflow-y-auto flex flex-col">
         <GalleryInfoPanel exifMetadata={exifMetadata()} class="mt-2" />
       </div>
     </div>
