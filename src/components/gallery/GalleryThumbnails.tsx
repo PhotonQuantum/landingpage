@@ -12,6 +12,7 @@ export interface GalleryThumbnailsProps extends Omit<JSX.HTMLAttributes<HTMLDivE
 
 const BATCH_SIZE = 100;
 const THRESHOLD = 50;
+const MOUNTED_WINDOW = 50;
 
 // Utility to get a batch of adjacent pointers
 const batchGetPointers = (
@@ -115,6 +116,14 @@ export default function GalleryThumbnails(props: GalleryThumbnailsProps) {
     }
   };
 
+  const keepMounted = () => {
+    const localIndex = selectedIdx();
+    const margin = MOUNTED_WINDOW / 4;
+    const left = Math.max(0, localIndex - localIndex % margin - MOUNTED_WINDOW / 2);
+    const right = Math.min(data().length - 1, localIndex + localIndex % margin + MOUNTED_WINDOW / 2);
+    return Array.from({ length: right - left + 1 }, (_, i) => left + i);
+  }
+
   return (
     <div {...others} class="h-20 w-full shrink-0 bg-black/70 backdrop-blur-3xl p-2 overflow-x-auto select-none" style={{ "overflow-anchor": "none", "scrollbar-width": "none" }}>
       <Virtualizer ref={(el) => { setHandler(el!); }}
@@ -122,6 +131,7 @@ export default function GalleryThumbnails(props: GalleryThumbnailsProps) {
         onScroll={scrollHandler}
         data={data()}
         itemSize={64}
+        keepMounted={keepMounted()}
         horizontal
       >
         {
@@ -139,6 +149,8 @@ export default function GalleryThumbnails(props: GalleryThumbnailsProps) {
                   props.onSelect(thumbPointer)
                 }
                 }
+                loading="lazy"
+                decoding="async"
               />
             );
           }
