@@ -5,11 +5,13 @@ import { createGestureManager, GestureManagerState } from "~/lib/gallery/gesture
 
 import SvgChevronLeft from "@tabler/icons/outline/chevron-left.svg";
 import SvgChevronRight from "@tabler/icons/outline/chevron-right.svg";
+import SvgX from "@tabler/icons/outline/x.svg";
 import { createSpring, SpringSetterOptions } from "@solid-primitives/spring";
 import GalleryThumbnails from "./GalleryThumbnails";
 import { lock, unlock } from "tua-body-scroll-lock";
 import WebGLViewer from "./WebGLViewer";
 import { createElementSize } from "@solid-primitives/resize-observer";
+import { GalleryInfoPanel } from "./GalleryInfoPanel";
 
 export interface GalleryPopupProps extends Omit<JSX.HTMLAttributes<HTMLDivElement>, "onSelect"> {
   pointer: ImagePointer | undefined;
@@ -206,6 +208,10 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
           <button class={`absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white motion-safe:transition z-20 bg-black/30 hover:bg-black/50 rounded-full cursor-pointer ${hovering() ? "opacity-100" : "opacity-0"}`} onClick={handleNext}>
             <SvgChevronRight class="w-6 h-6" />
           </button>
+          {/* Close button */}
+          <button class="absolute top-6 right-6 w-8 h-8 flex items-center justify-center text-white hover:text-white z-20 bg-black/70 hover:bg-black/90 rounded-full cursor-pointer motion-safe:transition-colors" onClick={props.onClose}>
+            <SvgX class="w-4 h-4" />
+          </button>
         </div>
         {/* Bottom thumbnail strip */}
         <GalleryThumbnails
@@ -217,19 +223,8 @@ export const GalleryPopup: Component<GalleryPopupProps> = (props) => {
       </div>
 
       {/* Right info panel */}
-      <div ref={el => scrollRefs.push(el)} class="w-[340px] shrink-0 bg-black/50 text-white p-6 overflow-y-auto flex flex-col" style={{"transform": "translate3d(0, 0, 0)"}}>
-        <button class="self-end mb-2 text-white/70 hover:text-white" onClick={props.onClose}>
-          <span class="text-2xl">&#10005;</span>
-        </button>
-        <h2 class="text-lg font-bold mb-4">Image Info</h2>
-        <div class="text-sm space-y-2">
-          <For each={Object.entries(exifMetadata() || {})}>{([key, value]) =>
-            <div class="flex justify-between border-b border-white/10 py-1">
-              <span class="text-gray-300">{key}</span>
-              <span class="text-right break-all">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
-            </div>
-          }</For>
-        </div>
+      <div ref={el => scrollRefs.push(el)} class="w-0 md:w-xs md:p-5 shrink-0 bg-black/50 text-white overflow-y-auto flex flex-col" style={{"transform": "translate3d(0, 0, 0)"}}>
+        <GalleryInfoPanel exifMetadata={exifMetadata()} class="mt-2" />
       </div>
     </div>
   );
