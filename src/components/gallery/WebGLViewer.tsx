@@ -337,12 +337,12 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     if (!newSelectedImage) return;
 
     // Load current image
-    textureManager.loadTexture(newSelectedImage.src);
+    textureManager.loadTexture(newSelectedImage.src, "high");
 
     // Preload adjacent LOD levels
     const { prev, next } = getAdjacentLODs(newSelectedImage);
-    if (prev) textureManager.loadTexture(prev.src);
-    if (next) textureManager.loadTexture(next.src);
+    if (prev) textureManager.loadTexture(prev.src, "low");
+    if (next) textureManager.loadTexture(next.src, "low");
   });
 
   // Preload next/previous images
@@ -351,15 +351,15 @@ export default function WebGLViewer(props: WebGLViewerProps) {
     const prev = prevImageItems();
 
     if (next) {
-      textureManager.loadTexture(next[0].src);
+      textureManager.loadTexture(next[0].src, "high");
       if (containerBounds.width && containerBounds.height) {
-        textureManager.loadTexture(findBestImage(next, containerBounds.width, containerBounds.height).src);
+        textureManager.loadTexture(findBestImage(next, containerBounds.width, containerBounds.height).src, "low");
       }
     }
     if (prev) {
-      textureManager.loadTexture(prev[0].src);
+      textureManager.loadTexture(prev[0].src, "high");
       if (containerBounds.width && containerBounds.height) {
-        textureManager.loadTexture(findBestImage(prev, containerBounds.width, containerBounds.height).src);
+        textureManager.loadTexture(findBestImage(prev, containerBounds.width, containerBounds.height).src, "low");
       }
     }
   });

@@ -16,7 +16,6 @@ export interface TextureManagerOptions {
 interface LoadingTexture {
   promise: Promise<WebGLTexture | undefined>;
   abortController: AbortController;
-  image: HTMLImageElement;
 }
 
 export class TextureManager {
@@ -93,11 +92,6 @@ export class TextureManager {
 
     // Abort the fetch request if it's still in progress
     loadingTexture.abortController.abort();
-    
-    // Clean up the image element
-    loadingTexture.image.src = '';
-    loadingTexture.image.onload = null;
-    loadingTexture.image.onerror = null;
 
     // Remove from loading textures
     this.setLoadingTextures(prev => {
@@ -117,7 +111,7 @@ export class TextureManager {
   }
 
   // Load texture asynchronously
-  public async loadTexture(src: string): Promise<WebGLTexture | undefined> {
+  public async loadTexture(src: string, priority?: RequestPriority): Promise<WebGLTexture | undefined> {
     if (this.getTextureCache().has(src)) {
       this.updateTextureLastUsed(src);
       return this.getTextureCache().get(src)!.texture;
@@ -127,13 +121,47 @@ export class TextureManager {
     if (loadingTexture) return loadingTexture.promise;
 
     const abortController = new AbortController();
-    const img = new Image();
-    img.crossOrigin = "anonymous"; // Enable CORS
 
-    const loadPromise = new Promise<WebGLTexture | undefined>((resolve, reject) => {
-      img.onload = () => {
-        // Check if the load was cancelled
+    const loadPromise = new Promise<WebGLTexture | undefined>(async (resolve) => {
+      try {
+        // Check if already aborted
         if (abortController.signal.aborted) {
+          resolve(undefined);
+          return;
+        }
+
+        // Fetch the image data
+        const response = await fetch(src, {
+          signal: abortController.signal,
+          mode: 'cors', // Enable CORS
+          priority
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Check if aborted after fetch
+        if (abortController.signal.aborted) {
+          resolve(undefined);
+          return;
+        }
+
+        // Get the image as a blob
+        const blob = await response.blob();
+
+        // Check if aborted after blob conversion
+        if (abortController.signal.aborted) {
+          resolve(undefined);
+          return;
+        }
+
+        // Create ImageBitmap asynchronously (this happens off the main thread)
+        const imageBitmap = await createImageBitmap(blob);
+
+        // Check if aborted after image decoding
+        if (abortController.signal.aborted) {
+          imageBitmap.close(); // Clean up the bitmap
           resolve(undefined);
           return;
         }
@@ -141,10 +169,10 @@ export class TextureManager {
         const texture = this.gl.createTexture()!;
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
-        // First upload the image
-        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
+        // Upload the ImageBitmap to the texture
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, imageBitmap);
 
-        // Then set texture parameters
+        // Set texture parameters
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
@@ -157,7 +185,7 @@ export class TextureManager {
           this.gl.texParameterf(this.gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
         }
 
-        const textureSize = this.calculateTextureSize(img.width, img.height);
+        const textureSize = this.calculateTextureSize(imageBitmap.width, imageBitmap.height);
         this.evictTextures(textureSize);
         
         this.setTextureCache(prev => {
@@ -170,6 +198,9 @@ export class TextureManager {
         });
         this.currentCacheSize += textureSize;
 
+        // Clean up the ImageBitmap as it's no longer needed
+        imageBitmap.close();
+
         this.setLoadingTextures((prev) => {
           prev.delete(src);
           return prev;
@@ -177,16 +208,16 @@ export class TextureManager {
 
         this.options.onTextureLoaded?.(src);
         resolve(texture);
-      };
 
-      img.onerror = (error) => {
-        // Check if the load was cancelled
+      } catch (error) {
+        // Check if the operation was cancelled
         if (abortController.signal.aborted) {
           resolve(undefined);
           return;
         }
 
         console.error('Failed to load image:', error);
+        
         // Create a 1x1 transparent texture as fallback
         const fallbackTexture = this.gl.createTexture()!;
         this.gl.bindTexture(this.gl.TEXTURE_2D, fallbackTexture);
@@ -203,23 +234,18 @@ export class TextureManager {
         });
         this.currentCacheSize += fallbackSize;
 
-        this.options.onTextureLoadError?.(src, new Error('Failed to load image'));
+        this.setLoadingTextures((prev) => {
+          prev.delete(src);
+          return prev;
+        });
+
+        this.options.onTextureLoadError?.(src, error instanceof Error ? error : new Error('Failed to load image'));
         resolve(fallbackTexture);
-      };
-
-      // Set up abort handling
-      abortController.signal.addEventListener('abort', () => {
-        img.src = '';
-        img.onload = null;
-        img.onerror = null;
-        resolve(undefined);
-      });
-
-      img.src = src;
+      }
     });
 
     this.setLoadingTextures(prev => {
-      prev.set(src, { promise: loadPromise, abortController, image: img });
+      prev.set(src, { promise: loadPromise, abortController });
       return prev;
     });
 
