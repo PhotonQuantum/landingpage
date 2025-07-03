@@ -38,7 +38,6 @@ export default function App() {
       <Meta name="theme-color" content={darkColor} media="(prefers-color-scheme: dark)" />
       <MDXProvider components={components}>
         <Router
-          explicitLinks
           root={props => (
             <main class="font-normal font-sans">
               <div class="min-h-screen w-full flex justify-center">
