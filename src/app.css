@@ -2,11 +2,6 @@
 @import "@catppuccin/tailwindcss/mocha.css";
 @plugin "@tailwindcss/typography";
 @config "../tailwind.config.cjs";
-
-/* @@ CODEGEN: BEGIN MDX INLINE STYLES @@ */
-@source inline("text-gray-500 -mt-4 font-medium text-subtle font-normal quote text-lime-700");
-/* @@ CODEGEN: END MDX INLINE STYLES @@ */
-
 body {
   @apply bg-linear-to-br from-ctp-base to-ctp-crust bg-ctp-base;
 }
