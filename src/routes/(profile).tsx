@@ -10,7 +10,7 @@ export default function ProfileLayout(props: RouteSectionProps) {
   const pagesLength = () => profilePages.length;
 
   return (
-    <div class="container flex flex-col max-w-lg sm:max-w-3xl">
+    <div class="container flex flex-col max-w-lg sm:max-w-5xl">
       <div class="flex mx-auto px-3 sm:px-6 py-6 sm:py-12 justify-center">
         <div class="shrink-0 flex items-center">
           <Image class="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 rounded-full shadow-sm my-auto" src={Avatar}
@@ -51,7 +51,7 @@ export default function ProfileLayout(props: RouteSectionProps) {
             </ImagesProvider>
           </Suspense>
         </div>
-        <div class="mt-8 max-w-3xl text-xs md:text-sm text-label text-center flex flex-col sm:flex-row">
+        <div class="mt-8 max-w-5xl text-xs md:text-sm text-label text-center flex flex-col sm:flex-row">
           <p class="sm:mr-auto">
             © {import.meta.env.VITE_LAST_UPDATE_YEAR} Yanning Chen.
             Code available on <a class="text-accent inline-block" href="https://github.com/PhotonQuantum/landingpage">

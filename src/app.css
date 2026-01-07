@@ -8,7 +8,7 @@
 /* @@ CODEGEN: END MDX INLINE STYLES @@ */
 
 body {
-  @apply bg-gradient-to-br from-ctp-base to-ctp-crust bg-ctp-base;
+  @apply bg-linear-to-br from-ctp-base to-ctp-crust bg-ctp-base;
 }
 
 @theme inline {
@@ -49,7 +49,8 @@ body {
 
 @utility markdown {
   @apply prose prose-base md:prose-lg dark:prose-invert
-    prose-ul:mt-0 prose-ol:my-0 prose-li:my-0;
+    prose-ul:mt-0 prose-ol:my-0 prose-li:my-0
+    max-w-none;
 
   * {
     @apply first-of-type:mt-0;
@@ -97,7 +98,7 @@ body {
 
 @utility bg-link {
   /* THEME: custom nav link style */
-  @apply bg-size-[100%_170%] bg-gradient-to-b from-50% from-transparent to-50% to-ctp-mauve;
+  @apply bg-size-[100%_170%] bg-linear-to-b from-50% from-transparent to-50% to-ctp-mauve;
 }
 
 @utility bg-link-focused {
@@ -110,19 +111,19 @@ body {
 
 /* THEME: start of custom styles */
 @utility bg-background {
-  @apply bg-gradient-to-br from-ctp-base to-ctp-crust bg-ctp-base;
+  @apply bg-linear-to-br from-ctp-base to-ctp-crust bg-ctp-base;
 }
 
 @utility bg-background-95 {
-  @apply bg-gradient-to-br from-ctp-base/95 to-ctp-crust/95 bg-ctp-base/95;
+  @apply bg-linear-to-br from-ctp-base/95 to-ctp-crust/95 bg-ctp-base/95;
 }
 
 @utility bg-background-80 {
-  @apply bg-gradient-to-br from-ctp-base/80 to-ctp-crust/80 bg-ctp-base/80;
+  @apply bg-linear-to-br from-ctp-base/80 to-ctp-crust/80 bg-ctp-base/80;
 }
 
 @utility bg-background-60 {
-  @apply bg-gradient-to-br from-ctp-base/60 to-ctp-crust/60 bg-ctp-base/60;
+  @apply bg-linear-to-br from-ctp-base/60 to-ctp-crust/60 bg-ctp-base/60;
 }
 
 @utility text-label {
@@ -154,5 +155,5 @@ body {
 }
 
 @utility bg-faint {
-  @apply dark:bg-ctp-mauve/20 bg-[rgb(225,213,255)]/100;
+  @apply dark:bg-ctp-mauve/20 bg-[rgb(225,213,255)];
 }
