@@ -16,7 +16,7 @@ import mdxClassesPlugin from "./scripts/vite-plugin-mdx-classes";
 const { default: mdx } = pkg;
 
 const buildDate = new Date();
-const buildDateString = `${buildDate.getUTCFullYear()}/${buildDate.getUTCMonth() + 1}/${buildDate.getUTCDate()}`;
+const buildDateString = buildDate.toLocaleDateString("en-CA");
 const buildYearString = `${buildDate.getUTCFullYear()}`;
 
 export default defineConfig({
