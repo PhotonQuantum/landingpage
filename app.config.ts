@@ -11,7 +11,6 @@ import Font from "vite-plugin-font";
 import { FontaineTransform } from "fontaine"
 import { imagetools } from "vite-imagetools";
 import tailwindcss from "@tailwindcss/vite";
-import mdxClassesPlugin from "./scripts/vite-plugin-mdx-classes";
 
 const { default: mdx } = pkg;
 
@@ -33,7 +32,6 @@ export default defineConfig({
       'import.meta.env.VITE_LAST_UPDATE_YEAR': JSON.stringify(buildYearString),
     },
     plugins: [
-      mdxClassesPlugin(),
       mdx.withImports({})({
         jsx: true,
         jsxImportSource: "solid-js",
