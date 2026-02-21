@@ -2,7 +2,7 @@ import { createUniqueId, FlowProps, For, JSX, onCleanup, onMount, splitProps, us
 import { Picture } from "vite-imagetools";
 import { createStore } from "solid-js/store";
 import { ImageMap, ImagesContext } from "~/context/images";
-import { adjustedSrcset } from "~/lib/gallery/helpers";
+import { adjustedSrcset } from "~/lib/images/srcset";
 
 export interface ImageMeta {
   src: Picture;
@@ -96,4 +96,3 @@ export const Image = (props: ImageProps) => {
     </picture>
   )
 }
-
