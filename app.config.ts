@@ -52,9 +52,9 @@ export default defineConfig({
         fallbacks: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"]
       }),
       imagetools({
-        defaultDirectives: new URLSearchParams({
+        defaultDirectives: () => new URLSearchParams({
           quality: "90",
-          format: "webp;jpg",
+          format: "webp;jpeg",
           withoutEnlargement: "true",
           effort: "max",
           as: "picture"

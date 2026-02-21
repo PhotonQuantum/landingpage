@@ -39,7 +39,7 @@
     "solid-mdx": "^0.0.7",
     "tailwindcss": "^4.1.18",
     "vite": "^7.3.0",
-    "vite-imagetools": "^9.0.2",
+    "vite-imagetools": "^9.0.3",
     "vite-plugin-font": "^5.1.2",
     "vite-plugin-solid-svg": "^0.8.1"
   },
