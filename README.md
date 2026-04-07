@@ -48,7 +48,7 @@ This template is ready to be deployed to Cloudflare Pages.
 
 If using `wrangler`,
 
-1. `pnpm run dev`
+1. `pnpm run build`
 2. `pnpx wrangler pages deploy`
 
 If using the Cloudflare Pages UI, just connect the repo and deploy. Build command is `pnpm run build` and output
